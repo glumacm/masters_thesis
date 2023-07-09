@@ -1,0 +1,69 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    TREASURE: 'look what youvedone'
+    MERGE_CONFIG:
+        default_merge_resolution: 3
+        default_conflict_resolution: 2
+        conflict_field_groups:
+            TheTest:
+                groups:
+                    -   field_name: 'description4'
+                        merge_resolution: 3
+                    -   field_name: 'lastModified'
+                        merge_resolution: 3
+                    -
+                        field_name: 'last_modified'
+                        merge_resolution: 3
+            object_name8:
+                groups:
+                    - field_name: 'field1'
+                      merge_resolution: 3
+                    - field_name: 'field3'
+                      merge_resolution: 1
+                    - field_name: 'firstInput8'
+                      merge_resolution: 4
+            object_name128a:
+                groups:
+                    - field_name: 'field1'
+                      merge_resolution: 3
+                    - field_name: 'field3'
+                      merge_resolution: 4
+                    - field_name: 'firstInput'
+                      merge_resolution: 4
+    TREASURE2:
+        OBJ1:
+            prop1: '1'
+            prop2: '2'
+            prop3obj:
+                prop3objprop1: '1.1'
+                prop3objprop2: '1.2'
+                
+    SOMETHING_I_FORGOT: 'what'
+    ENTITY_LAST_MODIFIED_FIELD: 'last_modified'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            $projectDir: '%kernel.project_dir%'
+
+#    App\EventListener\RequestListener:
+#        tags:
+#            - { name: kernel.event_listener, event: kernel.response }
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

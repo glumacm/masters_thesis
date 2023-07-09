@@ -1,0 +1,48 @@
+[
+  {
+    "key": "4904e49c-6d6a-4627-91ef-30b9294db523",
+    "value": {
+      "objectUuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+      "record": {
+        "id": 61,
+        "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+        "randomInteger": null,
+        "name": "To bo pa name SHOULD TRIGGER CHANGE!",
+        "description": "Ja kaj pa to no! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc",
+        "lastModified": "2023-04-09T13:37:55.000Z"
+      },
+      "conflicts": [
+        {
+          "fieldName": "description",
+          "value": "Ja kaj pa to no! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275",
+          "datetime": "2023-04-09T13:39:32.000Z"
+        }
+      ]
+    }
+  }
+]
+
+[
+    {
+      "key": "4904e49c-6d6a-4627-91ef-30b9294db523",
+      "value": {
+        "objectUuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+        "record": {
+          "id": 61,
+          "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+          "randomInteger": null,
+          "name": "To bo pa name SHOULD TRIGGER CHANGE!",
+          "description": "Ja kaj pa to no! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc",
+          "lastModified": "2023-04-09T13:37:55.000Z"
+        },
+        "conflicts": [
+          {
+            "fieldName": "description",
+            "value": "Ja kaj pa to no! random uuid: 6c1b6d47-a226-4c0b-b219-afb37e15dab5",
+            "conflictId": "ead30e8f-4375-4e79-b2bf-0a126cc9814d",
+            "datetime": "2023-04-11T20:14:07.000Z"
+          }
+        ]
+      }
+    }
+  ]

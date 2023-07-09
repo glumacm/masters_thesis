@@ -1,0 +1,62 @@
+<h1>
+    Lets start work here
+</h1>
+
+<p>
+    Hello world ! And hello master thesis!
+</p>
+
+<!-- First row with input-->
+<div class="row">
+    <form [formGroup]="basicForm">
+        <div class="col-12">
+            <div class="form-group">
+                <label for="firstInput">First change</label>
+                <input id="firstInput" class="form-control" type="text" formControlName="firstInput" />
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="form-group">
+                <label for="secondInput">First change</label>
+                <input id="secondInput" class="form-control" type="text" formControlName="secondInput" />
+            </div>
+        </div>
+    </form>
+    <div class="col-12" style="margin-top:15px;text-align:center">
+        <button (click)="update()" type="button" class="btn btn-primary">Update</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="clickOnlineEvent()">Simulate online click</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="clickOfflineEvent()">Simulate offline click</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="makeBErequest()">Make BE request</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="makePostBErequest()">Make POST BE request</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="testWorkerExample()">Start TEST WORKER example</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="addRetryNotification()">Add new push notification to Retry process</button>
+    </div>
+
+
+    <div class="col-12">
+        <button (click)="runEntitySyncWorker()">Run entity sync for object_name128</button>
+    </div>
+
+    <div class="col-12">
+        <button (click)="startEntityObjectSync()">Run entity object sync for 'example-table'</button>
+    </div>
+
+</div>

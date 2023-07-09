@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Enum;
+
+enum SyncEntityStatusEnum
+{
+    case SUCCESS;
+    case MISSING_REQUIRED_FIELDS;
+    case MISSING_UUID_DATA;
+    case SYNCHRONIZATION_LAST_MODIFIED_FIELD_MISMATCH;
+    case UNKNOWN_ERROR;
+    case REPOSITORY_NOT_FOUND;
+    case ENTITY_DOES_NOT_EXIST;
+    case CONFLICT;
+    case UNSUCCESSFUL_SAVE_TO_DB;
+    case CONCURRENCY_PROBLEM;
+}

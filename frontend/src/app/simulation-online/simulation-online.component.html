@@ -1,0 +1,86 @@
+<p>To bo simulacija!</p>
+
+
+<form [formGroup]="basicInputForm">
+    <div>
+        <label for="loadingFinished">Boolean if sync component finished loading (DON NOT REMOVE IT!)</label>
+        <input id="loadingFinished" type="checkbox" formControlName="loadingFinished" />
+    </div>
+
+    <div>
+        <label for="simulationFinished">Boolean if simulation is over (DON NOT REMOVE IT!)</label>
+        <input id="simulationFinished" type="checkbox" formControlName="simulationFinished" />
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="uuidValues">UUID values</label>
+            <input id="uuidValues" (change)="onInputChange($event, 'uuidValues')" class="form-control" type="text" formControlName="uuidValues" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="browserName">Browser name</label>
+            <input id="browserName" (change)="onInputChange($event, 'browserName')" class="form-control" type="text" formControlName="browserName" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="firstInput">First input</label>
+            <!-- <input id="firstInput" (change)="onInputChange($event, 'firstInput')" [ngModel]="firstInput" class="form-control" type="text" formControlName="firstInput" /> -->
+            <input id="firstInput"class="form-control" type="text" formControlName="firstInput" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="secondInput">Second input</label>
+            <input id="secondInput" class="form-control" type="text" formControlName="secondInput" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="thirdInput">Thhird input</label>
+            <input id="thirdInput" [value]="thirdInput"  class="form-control" type="text" formControlName="thirdInput" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="fourthInput">Fourth input</label>
+            <input id="fourthInput" [value]="fourthInput"  class="form-control" type="text" formControlName="fourthInput" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <button id="seleniumCustomDataButton" (click)="startSeleniumCustomData1()">Selenium start custom data 1</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportDatabaseToBE" (click)="exportToFile()">Export sync data to file</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="exportDatabase()">Export sync data</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="importDatabase()">Import sync data</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="startBatchSync()">Start sync batch</button>
+    </div>
+
+
+    <div class="col-12">
+        <button id="exportButton" (click)="startBEInitialState()">Start BE TestEntity initial state</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="storeDataToObject()">Save object to BE</button>
+    </div>
+</form>
