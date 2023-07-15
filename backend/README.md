@@ -13,6 +13,9 @@ Potrebno je dodati tudi ROOT certifikat. Oba certifikata je mozno dobiti v Caddy
 `/data/caddy/pki/authorities/local/`. Preneses na svoj racunalnik `root.crt` in `intermediate.crt` in jih uvozis
 v Keychain access. To bi moralo dovoliti precej casa izvajati zahteve na BE brez problema.
 
+Ukaz za kopiranje:
+`docker cp test-masters-be-caddy-1:/data/caddy/pki/authorities/local/root.crt <pot_na_lokalnem_racunalniku>`
+
 V primeru, da testi/simulacija ne bo dovolila posiljanje zahtev na backend, brez da bi se prvo sprejelo certifikat v 
 chrome browserju (ko gremo na url, ki ga simulacija poklice), se lahko v CADDY nastavivah povozi, da ne bo vec
 omogocen HTTPS ampak bi potem klical kar HTTP - seveda bo potrebno v logiki FE-ja popraviti URL do BE-a.

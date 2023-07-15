@@ -145,8 +145,6 @@ class GenericService
         // ... need to think if this is desired workflow.
         $id_value = $this->find_identifier_value_in_modified_data($modified_data, $this->get_entity_identifier_property($class_name_to_modify));
 
-        $this->logger->warning('-------------------------------------------- WHAT IS IDENTIFIER');
-        $this->logger->warning(strval($id_value));
         if (!$id_value) {
             $is_update = false;
 //            throw new NotFoundHttpException('Nimamo ID-ja'); // TODO: Deluje kot da bi lahko to vrgli stran, ker ta if samo pretvori update v insert
@@ -192,8 +190,6 @@ class GenericService
              * primeru INSERT-a vnese vse OBVEZNE podatke!
              */
             $test_db_item = $reflection_class->newInstance();
-            $this->logger->warning('WTFF JE NOVI INSTANCE');
-            $this->logger->warning($this->serializer->serialize($test_db_item, 'json'));
 
         }
         /**
@@ -209,12 +205,7 @@ class GenericService
 //         ... lahko brez pretvorbe dobili 'key'.
         // primer imena entitete 'App\Entity\TheTest', 'App\Controller\TestFu' , za spremenljivko $class_name
         $changes = $this->update_object_by_fields($real_modified_data, $class_name_to_modify , $test_db_item  ); // Ce bo NULL bomo ignorirali zadevo, verjetno.
-        $this->logger->warning('---------------------------- WHAT ARE MODIFIED DATA');
-        $this->logger->warning($this->serializer->serialize($real_modified_data, 'json'));
         if ($changes) {
-            $this->logger->warning('-----------------------------------    CHANGES ARE ABOUT TO BE SAVED');
-            $this->logger->warning($this->serializer->serialize($changes, 'json'));
-//            dump("BLABLABLALBA");
             /**
              * FLUSH je najbolje, da je klican po končanih batch spremembah. Če delamo spremembe en objekt za drugim
              * npr. v for zanki, je dobro narediti flush po for zanki!
@@ -243,10 +234,6 @@ class GenericService
          * Id se ne klonira!
          */
         $object_to_change_copy = $object_to_change; // Ker ce pred errorjem popravimo en field, se zna ta sprememba poznati po napaki.
-
-        $this->logger->warning('JA PA KAJ SE DOGAJA343434');
-        $this->logger->warning($this->serializer->serialize($object_to_change_copy, 'json'));
-
         try {
             $reflection_class = new ReflectionClass($class_name);
             // TODO: Problem, ker nekateri fieldi se ne pretvorijo pravilno. Primer: 'last_modified' dobimo kot 'lastModified' v $fields_with_values...
@@ -275,9 +262,6 @@ class GenericService
 //            dump(get_class($exception));
             return null;
         }
-
-        $this->logger->warning('JA PA KAJ SE DOGAJA');
-        $this->logger->warning($this->serializer->serialize($object_to_change_copy, 'json'));
 
         return $object_to_change_copy;
     }

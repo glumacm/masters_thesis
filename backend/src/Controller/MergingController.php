@@ -24,9 +24,8 @@ class MergingController extends AbstractController
         LoggerInterface $logger,
     ): JsonResponse
     {
-        $logger->warning('This is entity name: ' . $entity_name);
-
-        $logger->warning('This is entity name:78 ' . $generic_service->get_class_from_string($entity_name));
+//        $logger->warning('This is entity name: ' . $entity_name);
+//        $logger->warning('This is entity name:78 ' . $generic_service->get_class_from_string($entity_name));
 
 
 
@@ -59,16 +58,12 @@ class MergingController extends AbstractController
             /*
              * var EntityRepository
              */
-            $logger->warning('YOU DONT MISS YOU WATER');
 
             $repository->save(
                 $object_data,
                 flush: true,
                 persist: true
             );
-
-            $logger->warning('But he will be');
-            $logger->warning($serializer->serialize($object_data,'json'));
 
             return $this->json([
                 'message' => 'Welcome to your new controller!',
@@ -84,12 +79,6 @@ class MergingController extends AbstractController
         );
 
 
-
-        var_dump('What is this then RANDY~!~!!!~~');
-        var_dump($object_data_from_db);
-
-
-
         $object_to_be_converte_to_class_instance = $entity_name_reflection_class->newInstance();
 
 
@@ -102,20 +91,14 @@ class MergingController extends AbstractController
          * 3.1 Ce obstaja objekt v DB moramo primerjati tega z novim objektom
          * 3.2 Ce ne obstaja, direktno dodaj v bazo
          */
-        $logger->warning('you soo happy you cry, you cry the pee');
-        $logger->warning($serializer->serialize($object_data, 'json'));
+//        $logger->warning($serializer->serialize($object_data, 'json'));
+//        $logger->warning(property_exists(json_decode($request->getContent()), 'id'));
+//        $logger->warning(json_decode($request->getContent())->id);
+//        $logger->warning(json_encode($object_data->getLastModified()));
 
 
-        $logger->warning('for commerci');
-
-        $logger->warning(property_exists(json_decode($request->getContent()), 'id'));
-        $logger->warning('forv8 commerci');
-        $logger->warning(json_decode($request->getContent())->id);
-        $logger->warning(json_encode($object_data->getLastModified()));
-
-
-        $logger->warning('This is json data');
-        $logger->warning($serializer->serialize($object_data,'json'));
+//        $logger->warning('This is json data');
+//        $logger->warning($serializer->serialize($object_data,'json'));
 
 
         return $this->json([

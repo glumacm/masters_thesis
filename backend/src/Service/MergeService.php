@@ -139,10 +139,6 @@ class MergeService
         $entity_as_array  = $this->get_serializer_without_camel()->normalize($object_data_from_db, null);
         $fe_data_as_array = $this->get_serializer_without_camel()->normalize($data_from_fe, null);
 
-
-        var_dump('SPIRIT OF YOUTH');
-
-        $this->logger->warning('shot you down');
         $what = new JsonDiff($entity_as_array, $fe_data_as_array, 0, skipPaths: array('id', 'uuid')
         ); # Last parameter == fields to ignore
 
@@ -296,8 +292,6 @@ class MergeService
         # 1. get DB object ==> $db_object
         # 2. get differences between DB and FE
         # Example from before: `$modified_new        = $differences_between_objects->getModifiedNew();`
-
-        $this->logger->warning('ONLY THING WE KNOW HOW TO DO --- merge resolution');
 //        $this->logger->warning(($db_object['last_modified']->format('Y-m-d H:i:s')));
         $this->logger->warning(($db_object['last_modified']));
         $this->logger->warning(($fe_object['last_modified']));
@@ -310,15 +304,14 @@ class MergeService
          */
         $conflict_configuration = $this->get_merge_configuration();
 
-        $this->logger->warning('what is entity short name: ' . $entity_short_name);
+//        $this->logger->warning('what is entity short name: ' . $entity_short_name);
         $entity_conflict_configuration = $this->conflictConfigurationService->get_conflict_field_groups_by_entity_name(
             $entity_short_name
         );
         $default_merge_resolution      = $this->conflictConfigurationService->get_default_merge_resolution();
 
 
-        $this->logger->warning('WEELLL LETS DO DSOMETHING');
-        $this->logger->warning($this->serializer->serialize($differences->getModifiedPaths(), 'json'));
+//        $this->logger->warning($this->serializer->serialize($differences->getModifiedPaths(), 'json'));
 
         # 4. find merge resolution configuration
 
@@ -472,14 +465,11 @@ class MergeService
                 if (array_key_exists($entity_short_name, $conflict_configuration->conflict_field_groups)) {
                     $conflict_field_groups = $conflict_configuration->conflict_field_groups[$entity_short_name]->groups;
                     foreach ($conflict_field_groups as $conflict_field_group) {
-                        $this->logger->warning('what is FIELD name: ' . $conflict_field_group->field_name);
-                        $this->logger->warning('what is path: ' . $modified_path_converted);
-                        var_dump('Ona');
-                        $this->logger->warning('ona');
-                        $this->logger->warning($this->serializer->serialize($differences->getModifiedDiff(), 'json'));
+//                        $this->logger->warning('what is FIELD name: ' . $conflict_field_group->field_name);
+//                        $this->logger->warning('what is path: ' . $modified_path_converted);
+//                        $this->logger->warning($this->serializer->serialize($differences->getModifiedDiff(), 'json'));
                         var_dump($differences->getModifiedDiff());
                         if ($conflict_field_group->field_name == $modified_path_converted) {
-                            $this->logger->warning('NISTA TAKO UGODNO');
 
                             // Primitivna resitev
                             $changes[$modified_path_converted] = $fe_object[$modified_path_converted];

@@ -197,14 +197,13 @@ class RefactoredSyncController extends AbstractController
         $response->headers->set('Content-Type', 'application/json');
 
         $testing_example_conflict_groups = $conflictConfigurationService->get_conflict_field_groups_by_entity_name('testing_example');
-        var_dump($testing_example_conflict_groups);
-        var_dump($conflictConfigurationService->get_field_name_from_conflict_group($testing_example_conflict_groups[0]));
-        var_dump($conflictConfigurationService->get_merge_resolution_from_conflict_group($testing_example_conflict_groups[0]));
-        var_dump('mene ne treba');
-        var_dump($conflictConfigurationService->get_default_merge_resolution());
-
-        var_dump('to bo vrednost za neobstojec podatek');
-        var_dump($conflictConfigurationService->get_conflict_field_groups_by_entity_name('kad_se_smije_ivana')); # Returns NULL
+//        var_dump($testing_example_conflict_groups);
+//        var_dump($conflictConfigurationService->get_field_name_from_conflict_group($testing_example_conflict_groups[0]));
+//        var_dump($conflictConfigurationService->get_merge_resolution_from_conflict_group($testing_example_conflict_groups[0]));
+//        var_dump($conflictConfigurationService->get_default_merge_resolution());
+//
+//        var_dump('Non-existend data');
+//        var_dump($conflictConfigurationService->get_conflict_field_groups_by_entity_name('kad_se_smije_ivana')); # Returns NULL
 
         $response->setContent(json_encode(''));
         return $response;
@@ -232,9 +231,6 @@ class RefactoredSyncController extends AbstractController
          * @var SyncBatchSingleEntityRequest $request_model
          */
         $request_model = $serializer->deserialize($request->getContent(), SyncBatchSingleEntityRequest::class, 'json');
-//        $logger->info(sprintf('This is agentID data: %s', $request_model->agent_id));
-//        $logger->info(sprintf('THIS IS ALL DATA: %s', $serializer->serialize($request_model->data,'json')));
-//        throw new \Exception('WHY???');
         $syncDoctrineEventsListener->setAgentId($request_model->agent_id);
 
 
@@ -305,8 +301,8 @@ class RefactoredSyncController extends AbstractController
         $data_to_return = new SyncEntityResponse();
         $data_to_return->status = SyncEntityStatusEnum::SUCCESS->name;
 
-        $logger->warning('This is entity name: ' . $entity_name);
-        $logger->warning('This is entity name:78 ' . $generic_service->get_class_from_string($entity_name));
+//        $logger->warning('This is entity name: ' . $entity_name);
+//        $logger->warning('This is entity name:78 ' . $generic_service->get_class_from_string($entity_name));
 
         # Dobimo razred entitete, ki jo moramo sinhronizirati
         $entity_name_reflection_class = $generic_service->get_class_from_string($entity_name);
@@ -381,7 +377,7 @@ class RefactoredSyncController extends AbstractController
                         persist: false
                     );
                 } catch (Exception $e) {
-                    var_dump('Error occured while saving merged data to db!!!');
+//                    var_dump('Error occured while saving merged data to db!!!');
                     $logger->emergency('Error occured while saving merged data to db!!!');
                     $logger->emergency($e->getMessage());
                     throw new \Exception(message: 'Error occured while saving merged data to db!!!', previous: $e);
@@ -399,8 +395,8 @@ class RefactoredSyncController extends AbstractController
          * 3.2 Ce ne obstaja, direktno dodaj v bazo
          */
 
-        $logger->warning('This is json data');
-        $logger->warning($serializer->serialize($object_data,'json'));
+//        $logger->warning('This is json data');
+//        $logger->warning($serializer->serialize($object_data,'json'));
 
 
         $data_to_return->merged_data = $new_data;
@@ -426,8 +422,6 @@ class RefactoredSyncController extends AbstractController
         );
         $response         = new Response();
         $response->headers->set('Content-Type', 'application/json');
-
-//        throw new \Exception('TO JE MOJA OSEBNA NAPAKA stevilka 343424');
 
 //        usleep(5 * (pow(10, 6))); // 5 s # Za testiranje scenarija, ko pride do timeouta (na strani clienta)
 
@@ -481,7 +475,7 @@ class RefactoredSyncController extends AbstractController
         $sync_job_repository->save($newJobEntry, flush: true);
 
 
-        $logger->warning('This is entittyName: ' . $decoded_json_content->entity_name);
+//        $logger->warning('This is entittyName: ' . $decoded_json_content->entity_name);
         /** @var SynchronizationSyncEntityRecord[] $encoded_data_array */
         $encoded_data_array = $decoded_json_content->data;
 
@@ -525,11 +519,9 @@ class RefactoredSyncController extends AbstractController
             // ZAKAJ BI SPLOH RABIL pretvarjati podatek v entiteto?
 
 
-            $logger->warning("WHY DONT WE FGOOO: " . $serializer->serialize($test_me, 'json'));
             if (!in_array($entity_identifier_field, array_keys($single_record->record))) {
                 // INSERT MODE
                 // 2.1 serialize data to entity data
-                $logger->warning('INSERT MODE!!!!!!!!');
                 /**
                  * @var TheTest $data_set_into_object
                  */
@@ -539,16 +531,12 @@ class RefactoredSyncController extends AbstractController
                     $decoded_json_content->entity_name,
                     $reflection_entity->newInstance()
                 );
-                $logger->warning('RIGHT  IN THE POSSITION    ' . json_encode($data_set_into_object));
                 // If we would not use lastModified data in the logger after `save` then we could omit `persist:true` parameter!!!!
                 $repository->save(
                     $data_set_into_object,
                     flush: true,
                     persist: true
                 ); // added persist:true because we need to get this data after entity inserted (ottherwise we get ERROR about retrieving data before initializiation!!!!!!!
-                $logger->warning(
-                    'WHAT WE GOT HERE:  ' . ($data_set_into_object->getLastModified()->format('Y-m-d H:i:m,'))
-                );
 
                 // TODO: Fix code so that lastModified data is retrieved dynamically
                 $entity_processed                 = new SynchronizationSyncedObject(
@@ -559,29 +547,27 @@ class RefactoredSyncController extends AbstractController
             } else {
                 // UPDATE MODE
                 // 2. find object based on identificator
-                $logger->warning('THIS TIME YOU GO TO UPDATE!!!!!!!!');
                 $entity_class       = new ReflectionClass($decoded_json_content->entity_name);
                 $identifiator_field = $entity_class->getProperty($entity_identifier_field);
                 $my_id              = $single_record->record[$entity_identifier_field];
                 settype($my_id, $identifiator_field->getType()->getName());
-                $logger->warning('OGOGING BACK');
                 $entity_db_data = $repository->find($my_id);
                 if (!$entity_db_data) {
                     // PROCESS this with error or another handler!
                     continue;
                 }
-                $logger->warning(
-                    'This is data before save:  ' . $entity_db_data->getLastModified()->format('Y-m-d H:i:m:ss')
-                );
-                $logger->warning('I MISS WHO WE WERE  ' . $single_record->record[$entity_identifier_field]);
+//                $logger->warning(
+//                    'This is data before save:  ' . $entity_db_data->getLastModified()->format('Y-m-d H:i:m:ss')
+//                );
+//                $logger->warning('singlerecord->record uuid field  ' . $single_record->record[$entity_identifier_field]);
                 $logger->warning($serializer->serialize($entity_db_data, 'json'));
                 $data_to_save = $genericService->update_object_by_fields(
                     $single_record->record,
                     $decoded_json_content->entity_name,
                     $entity_db_data
                 );
-                $logger->warning($serializer->serialize($data_to_save, 'json'));
-                $logger->warning("What is object type:  " . get_class($data_to_save));
+//                $logger->warning($serializer->serialize($data_to_save, 'json'));
+//                $logger->warning("What is object type:  " . get_class($data_to_save));
 //                $logger->warning(json_encode($data_to_save));
                 $repository->save($data_to_save, flush: true);
                 $logger->warning(
@@ -600,8 +586,8 @@ class RefactoredSyncController extends AbstractController
             // 5. store data
             // 6. mark data as synched in some structure (that will be sent to FE)
             // 7. return list of successfully stored data (localUUID + lastModified) so that FE can have the last data stored
-            $logger->warning('This is data in loop: ');
-            $logger->warning("{$single_record}");
+//            $logger->warning('This is data in loop: ');
+//            $logger->warning("{$single_record}");
         }
 
         $sync_response_data->setSyncStatus(

@@ -64,8 +64,8 @@ class SyncService
 
         $object_data = $deserialized_item;
 
-        $this->logger->warning('This is entity name: ' . $entity_name);
-        $this->logger->warning('This is entity name:78 ' . $this->generic_service->get_class_from_string($entity_name));
+//        $this->logger->warning('This is entity name: ' . $entity_name);
+//        $this->logger->warning('This is entity name:78 ' . $this->generic_service->get_class_from_string($entity_name));
 
         # Dobimo razred entitete, ki jo moramo sinhronizirati
         $entity_name_reflection_class = $this->generic_service->get_class_from_string($entity_name);
