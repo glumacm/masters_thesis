@@ -159,29 +159,8 @@ describe('Integration tests for SynchronizationLibrary', () => {
     });
 
 
-
-    // Uporabljam zato, da potestiram kaksno asynchrono logiko
-    // it('#2 Axios/moxios example', async() => {
-    //     return;
-    //     const check = new SynchronizationLibrary(false);
-    //     await check.finishSetup();
-
-    //     const customAxios = new CustomAxios(true); // true == mockamo axios ; false == uporabimo axios normalno
-    //     const responseData = {'doNot': 'lie'};
-    //     customAxios.mockedResponse = {mockedResponseType: CustomAxiosMockedResponseEnum.SUCCESS, mockedResponseData: {status:200, response: {data: responseData} as any} as any} as MockedResponse;
-    //     const havingFun = await customAxios.get('http://localhost/somewhere_in_my_memory', {});
-
-    //     const copyResponse = cloneDeep(responseData);
-    //     // copyResponse['doNot'] = 'hapening on the street';
-    //     expect(havingFun.status).toEqual(200);
-    //     expect(havingFun.data.data).toEqual(copyResponse);
-
-    //     console.log('Haing fun in the daytime');
-    //     console.log(havingFun); 
-    // });
-
     it('#3 should store and sync data (single record sync)', async () => {
-        // Preverimo, da pred testom res nimamo nobene baze
+        // Check that all databases are emoty before starting
         await expectAllDatabasesTo(false);
 
         const syncLibrary = new SynchronizationLibrary(false, true);
@@ -192,7 +171,7 @@ describe('Integration tests for SynchronizationLibrary', () => {
         await expectAllDatabasesTo(true);
         const newUuid = uuidv4();
 
-        // podatek, ki ga bom shranil v bazo pred syncom
+        // Data that will be stored to database before syncing
         const newObjectData = {
             'field1': 'Test field1',
             'field2': 'Test field2'
@@ -204,13 +183,13 @@ describe('Integration tests for SynchronizationLibrary', () => {
         const dataFromBE = { conflicts: [], mergedDbObject: mergedDataFromBE } as MergeProcessResultI;
 
 
-        // Pripravim pricakovan response iz BE
+        // Prepare expected response from BE
         const justDontCareAtAll = { status: SyncEntityStatusEnum.SUCCESS, mergedData: dataFromBE, recordUuid: newUuid, error: undefined } as SyncEntityResponse;
         // syncLibrary.setMockedResponse(CustomAxiosMockedResponseEnum.SUCCESS, ({status: 200, response: {data: dataFromBE} as any} as any) as any);
         syncLibrary.setMockedResponse(CustomAxiosMockedResponseEnum.SUCCESS, ({ status: 200, response: justDontCareAtAll as any } as any) as any);
         // syncLibrary.setMockedResponse(CustomAxiosMockedResponseEnum.SUCCESS,{ status: 200, response: { data: dataFromBE, status: 200, statusText: 'chase the', headers: {} as any, config: { headers: {} as any } as any } as any, data: dataFromBE, statusText: 'lived back in the days', headers: {}, config: { data: { 'its': 'intheway' } } as any } as any);
 
-        // POZOR: Paziti moramo, da imamo v CONFIGURATION nastavljen mapping za podano tabelo!!!
+        // WARNING: We need to be careful that we have set mapping for passed entity in the CONFIGURATION
         const newTable = testTableName;
         const storedData = await syncLibrary.storeNewObject(newTable, newUuid, newObjectData);
 
@@ -223,14 +202,12 @@ describe('Integration tests for SynchronizationLibrary', () => {
 
 
         /**
-         * Tukaj imamo HUGE problem, ker se nekje ASYNC KODA NE pocaka.
-         * To je zazto ,ker v main.ts ne moremo cakati na izvedbo, ce hocemo, da se v ozadju izvede zadeva. Torej moramo "umetno" v testu narediti await
-         * Zaenkrta bom to resil tako, da bom kar direktno v testu poklical dolocene metode v sync threadu -> torej hipoteticno ne bom preko main.ts poganjal glavne logike -> POZOR, potrebno preveriti pred vsakim klicem
-         * ali moram kaksne posebne podatke nastaviti, ki bi jih main.ts nastavil ob klicu.
+         * Here we have a HUGE problem, because ASYNC code does not wait.
+         * That is because in main.ts we cannot wait for execution to finish, because we want the task to be executed in the "background". So we need  to
+         * artifically create await in the test or we need to prepare such data that would be set from main.ts when calling the function.
          */
-        // await syncLibrary.startSyncEntityObject(newTable, newUuid, storedData.record); --> tako ne moremo, ker pride do zaklepanja baze... na to je treba biti pozoren tudi, ko bom preizkusal samodejno sinhronizacijo
+        // await syncLibrary.startSyncEntityObject(newTable, newUuid, storedData.record); --> This is not posible because it causes database locking... This is something I need to be careful about when I test automatic synchronisation.
         await syncLibrary.syncEntityInstance?.startObjectEntitySyncProcessRefactored(newTable, storedData.record, newUuid); // starts background processing
-        console.log('will chace the starts');
 
         const afterSyncDB = await syncLibrary.getSyncDB();
         const data: SyncChamberRecordStructure = await afterSyncDB.getItemByLocalUuid(newTable, newUuid);

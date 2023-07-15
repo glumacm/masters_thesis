@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 export class ApiService {
 
   constructor(
-    private httpClient: HttpClient // dokler nimamo BE, se clienta ne rabi - bomo mockali request
+    private httpClient: HttpClient
   ) {
     
   }
@@ -24,8 +24,8 @@ export class ApiService {
     return new Observable((observer) => {
       observer.next(
         {
-          firstInput: 'jjajaja',
-          secondInput: 'nonono',
+          firstInput: 'jo',
+          secondInput: 'no',
           updatedAt: new Date()
         }
       );

@@ -281,11 +281,11 @@ export class SynchronizationLibrary {
      * @param useSyncLibAutoMerge 
      */
     public async startSyncEntityObject(entityName: string, objectUuid: string, data: any = {}, delay_to_wait: number = 0, useSyncLibAutoMerge: boolean = true) {
-        const insecure = new CustomConsoleOutput('IamBeautiful', CONSOLE_STYLE.black_and_white!);
-        insecure.output(`Tables in syncingDB: `, this.dbSyncing!.tables?.map((table) => table.name));
+        // const insecure = new CustomConsoleOutput('Iam', CONSOLE_STYLE.black_and_white!);
+        // insecure.output(`Tables in syncingDB: `, this.dbSyncing!.tables?.map((table) => table.name));
         // this.syncEntityInstance?.startObjectEntitySyncProcess(entityName, objectUuid); // starts background processing
         this.syncEntityInstance?.startObjectEntitySyncProcessRefactored(entityName, data, objectUuid, delay_to_wait); // starts background processing
-        insecure.closeGroup();
+        // insecure.closeGroup();
     }
 
     public async startBatchSync(delay_to_wait: number = 0, useSyncLibAutoMerge: boolean = true): Promise<void> {
@@ -353,7 +353,7 @@ export class SynchronizationLibrary {
                 break;
         }
 
-        console_log_with_style(`${this.DEBUG_CONSOLE_CLASS_PREFIX} - before checking TEMP database`, CONSOLE_STYLE.sync_lib_main, '', 4);
+        // console_log_with_style(`${this.DEBUG_CONSOLE_CLASS_PREFIX} - before checking TEMP database`, CONSOLE_STYLE.sync_lib_main, '', 4);
 
         {
             /**
@@ -386,7 +386,7 @@ export class SynchronizationLibrary {
 
                 }
             } else {
-                console_log_with_style(`${this.DEBUG_CONSOLE_CLASS_PREFIX} - there is no BillClinton`, CONSOLE_STYLE.sync_lib_main, '', 4);
+                console_log_with_style(`${this.DEBUG_CONSOLE_CLASS_PREFIX} - there is no USE`, CONSOLE_STYLE.sync_lib_main, '', 4);
             }
 
 

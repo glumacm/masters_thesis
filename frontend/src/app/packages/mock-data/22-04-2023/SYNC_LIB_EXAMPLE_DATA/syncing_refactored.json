@@ -14,7 +14,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
+                "value": "CHECK IT OUT! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
               }
             ],
             "changesDatetime": "2023-04-09T10:47:04.724Z",
@@ -25,7 +25,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
+                "value": "CHECK IT OUT! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
               }
             ],
             "changesDatetime": "2023-04-09T10:57:04.319Z",
@@ -36,7 +36,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+                "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
               }
             ],
             "changesDatetime": "2023-04-09T10:57:05.444Z",
@@ -47,7 +47,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
+                "value": "CHECK IT OUT! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
               }
             ],
             "changesDatetime": "2023-04-09T10:57:06.898Z",
@@ -78,7 +78,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+                "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
               },
               {
                 "op": "add",
@@ -104,7 +104,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
+                "value": "CHECK IT OUT! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
               }
             ],
             "changesDatetime": "2023-04-09T13:36:02.910Z",
@@ -115,7 +115,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
+                "value": "CHECK IT OUT! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
               }
             ],
             "changesDatetime": "2023-04-09T13:37:40.468Z",
@@ -142,7 +142,7 @@
               {
                 "op": "replace",
                 "path": "/description",
-                "value": "Ja kaj pa to no! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
+                "value": "CHECK IT OUT! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
               },
               {
                 "op": "remove",
@@ -170,13 +170,13 @@
         ],
         "record": {
           "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
-          "name": "To bo pa name SHOULD TRIGGER CHANGE!",
-          "description": "Ja kaj pa to no! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275",
+          "name": "2 SHOULD TRIGGER CHANGE!",
+          "description": "CHECK IT OUT! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275",
           "f1": "f000198 data New Sharif Oldies goldies",
           "f2": "f882 data make it pay",
           "f3": "f003 data Something DontLikeit",
           "f4": "f4 77data",
-          "f7": "Kemona"
+          "f7": "TEST"
         },
         "objectStatus": "pending_sync",
         "lastModified": "2023-04-09T13:39:17.657Z"
@@ -201,7 +201,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
+                  "value": "CHECK IT OUT! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
                 }
               ],
               "changesDatetime": "2023-04-09T10:47:04.724Z",
@@ -212,7 +212,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
+                  "value": "CHECK IT OUT! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
                 }
               ],
               "changesDatetime": "2023-04-09T10:57:04.319Z",
@@ -223,7 +223,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+                  "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
                 }
               ],
               "changesDatetime": "2023-04-09T10:57:05.444Z",
@@ -234,7 +234,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
+                  "value": "CHECK IT OUT! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
                 }
               ],
               "changesDatetime": "2023-04-09T10:57:06.898Z",
@@ -265,7 +265,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+                  "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
                 },
                 {
                   "op": "add",
@@ -291,7 +291,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
+                  "value": "CHECK IT OUT! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
                 }
               ],
               "changesDatetime": "2023-04-09T13:36:02.910Z",
@@ -302,7 +302,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
+                  "value": "CHECK IT OUT! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
                 }
               ],
               "changesDatetime": "2023-04-09T13:37:40.468Z",
@@ -329,7 +329,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
+                  "value": "CHECK IT OUT! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
                 },
                 {
                   "op": "remove",
@@ -359,7 +359,7 @@
                 {
                   "op": "replace",
                   "path": "/description",
-                  "value": "Ja kaj pa to no! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275"
+                  "value": "CHECK IT OUT! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275"
                 }
               ],
               "changesDatetime": "2023-04-11T20:13:51.951Z",
@@ -368,13 +368,13 @@
           ],
           "record": {
             "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
-            "name": "To bo pa name SHOULD TRIGGER CHANGE!",
-            "description": "Ja kaj pa to no! random uuid: 6c1b6d47-a226-4c0b-b219-afb37e15dab5",
+            "name": "1 SHOULD TRIGGER CHANGE!",
+            "description": "CHECK IT OUT! random uuid: 6c1b6d47-a226-4c0b-b219-afb37e15dab5",
             "f1": "f000198 data New Sharif Oldies goldies",
             "f2": "f882 data make it pay",
             "f3": "f003 data Something DontLikeit",
             "f4": "f4 77data",
-            "f7": "Kemona"
+            "f7": "TEST"
           },
           "objectStatus": "pending_sync",
           "lastModified": "2023-04-11T20:13:51.950Z"

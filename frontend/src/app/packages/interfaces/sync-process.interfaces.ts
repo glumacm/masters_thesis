@@ -4,8 +4,8 @@ import { AutoMergeDoc } from "../utilities/automerge-utilities";
 export interface SynchronizationPostData {
     class_name: string;
     object_data: any;
-    id: any; // potrebujemo, k
-    action: any; // Mogoce bi 
+    id: any; 
+    action: any;
     last_db_modified: Date;
 }
 

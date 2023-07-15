@@ -7,7 +7,6 @@ import { AddOperation, Operation, ReplaceOperation } from 'fast-json-patch';
 import { cloneDeep } from 'lodash';
 import { DeferredPromise } from './utilities/deferred';
 import { SyncTempChamberRecordStructure } from './interfaces/sync-storage.interfaces';
-import { DatabaseUtility } from './utilities/database-utility';
 import { console_log_with_style, CONSOLE_STYLE } from './utilities/console-style';
 
 type syncChamberrecordObjectStatus = 'in-sync' | 'pending-sync' | undefined;
@@ -76,7 +75,7 @@ export class SyncStorageService {
     return new Promise((resolve,reject) => {
       if (this.syncDB.value) {
         this.syncDB.value.onerror = (error) => {
-          console_log_with_style('sync storage service L:77 error', CONSOLE_STYLE.promise_error!, error);
+          console_log_with_style('sync storage service L:78 error', CONSOLE_STYLE.promise_error!, error);
           resolve(false);
         }
         this.syncDB.value.onclose = () => {

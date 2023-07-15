@@ -23,7 +23,7 @@ export class NetworkStatus {
         // NetworkStatus._instance = this;
         this.status = new BehaviorSubject<NetworkStatusEnum>(navigator.onLine ? NetworkStatusEnum.ONLINE : NetworkStatusEnum.OFFLINE);
         this.networkChange$ = this.status.asObservable().pipe(
-            skipWhile((_) => this.firstExecution.value), // Dokler bo this.firstExecution.value === true se ta stream ne bo 'zagnal'!!!
+            skipWhile((_) => this.firstExecution.value), // Until this.firstExecution.value === true this stream is not executed!!!
             switchMap(() => this.status),
         );
     }

@@ -99,15 +99,10 @@ export class AppDB extends AAppDB {
 
     async addEntryToTable(tableName: string, dataUuid: string, dataToInsert: any, dbVersion?: any, tableSchema?: any): Promise<AppDB> {
         let tableReference: AppDB = this;
-        console.log('Turn up the lights');
         
         if (!this.tables.find((table: Table) => table.name === tableName)) {
-            console.log('MUSIC');
-            
             tableReference = await this.changeSchemaInstance(this, tableSchema, dbVersion);
         }
-
-        console.log('SPECIAL FIREND');
         
         await tableReference.table(tableName).put(dataToInsert, dataUuid);
         return tableReference;
@@ -232,19 +227,12 @@ export class AppDB extends AAppDB {
                     // obj.objectStatus = newStatus;
                     obj[statusField] = newStatus;
                     
-                    
-                    // if (index > 0){
-                    //     throw new Error("WHAT IS GOING ON");
-                    // }
-                    // console_log_with_style('ONCE WENT THROUGH....', CONSOLE_STYLE.promise_error!, obj);
-                    // index++;
                 }
             );
         }
         catch (exception) {
             success = false;
         }
-        // console_log_with_style(`COMPARE COUNT FOR FIRST QUERY: ${countFoundItems}    THEN WE HAVE UPDATE: ${numberOfSuccessfullyModifiedItems}`, CONSOLE_STYLE.promise_error!, '');
         const deferedPromise = new DeferredPromise<boolean>();
         deferedPromise.resolve(success);
         return deferedPromise.promise;
@@ -255,31 +243,20 @@ export class AppDB extends AAppDB {
     public async setStatusOnSyncItemsBasedOnStatusGeneric(table: string, currentStatus: any, newStatus: any, statusField: string = 'objectStatus'): Promise<boolean> {
 
         let success = true;
-        console_log_with_style('START ITEMS UPDATE IN TRANSACTION....', CONSOLE_STYLE.promise_error!, {});
-        // const allItemsFoundByConditionInTable = await this.table(table).filter((tableItem) => tableItem.objectStatus == currentStatus);
         const allItemsFoundByConditionInTable = await this.table(table).filter((tableItem) => tableItem[statusField] == currentStatus);
         const countFoundItems = await allItemsFoundByConditionInTable.count();
         try {
             let index = 0;
             const numberOfSuccessfullyModifiedItems = await allItemsFoundByConditionInTable.modify(
                 (obj) => {
-                    console_log_with_style('INSIDE EACH ITEM....', CONSOLE_STYLE.promise_error!, obj);
                     // obj.objectStatus = newStatus;
                     obj[statusField] = newStatus;
-                    
-                    
-                    // if (index > 0){
-                    //     throw new Error("WHAT IS GOING ON");
-                    // }
-                    // console_log_with_style('ONCE WENT THROUGH....', CONSOLE_STYLE.promise_error!, obj);
-                    // index++;
                 }
             );
         }
         catch (exception) {
             success = false;
         }
-        // console_log_with_style(`COMPARE COUNT FOR FIRST QUERY: ${countFoundItems}    THEN WE HAVE UPDATE: ${numberOfSuccessfullyModifiedItems}`, CONSOLE_STYLE.promise_error!, '');
         const deferedPromise = new DeferredPromise<boolean>();
         deferedPromise.resolve(success);
         return deferedPromise.promise;
@@ -293,10 +270,7 @@ export class AppDB extends AAppDB {
         });
         allItemsFoundByUuids.eachKey(
             (key) => {
-                console_log_with_style(`CHECK THIS OUT: ${key}`, CONSOLE_STYLE.red_and_black!, allItemsFoundByUuids);
             }
         )
     }
 }
-
-// export const db = new AppDB();

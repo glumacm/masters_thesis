@@ -32,7 +32,7 @@ export class ConflictService {
     }
 
     /**
-     * Ta funkcija ima po mojem veliko pomankljivosti
+     * I think that this function has a lot of missing parts
      * @param objectUuid 
      * @param recordValue 
      * @param changes 
@@ -66,11 +66,11 @@ export class ConflictService {
             }
         }
 
-        // 18.06.2023 -> Zakomentiral to, ker bi rad implementiral opcijo, da bi conflict bil avtomatsko prepoznan na podlagi lastModified
+        // 18.06.2023 -> Commented below line because I want to implement an option to automatically recognise a conflict based on lastModified
         // record.lastModified = changesDatetime;
         record.lastModified = changesDatetime ? changesDatetime : new Date();
 
-        // Do tukaj ne bi smelo priti logika, ki ima undefined `changes` !!!!
+        // Logic that does not have `changes` should not be able to get to this point!
         if (changes && changes.length > 0) {
             record.changes.push(this.prepareRecordChangesStructure(changes, new Date(), false));
         }
@@ -99,7 +99,7 @@ export class ConflictService {
                 const obj = diffValue;
                 switch (diffValue?.op) {
                     case 'replace':
-                        // ker diffValue.path vsebuje obliko '/<imePolja>' je potrebno uporabiti 'getValueByPointer' da knjiznica pretvori 'path' v pravo obliko
+                        // because diffValue.path returns value like '/<fieldName>' we need to use 'getValueByPointer' so that we convert `path` to correct value
                         (obj as ReplaceOperation<any>).value = fast_json_patch.getValueByPointer(currentValue, diffValue.path);
                         break;
                     case 'add':
@@ -111,7 +111,7 @@ export class ConflictService {
                         break;
                     default:
 
-                        // vrnemo napako, ker ce pride tukaj do napake pomeni, da je nek problem s knjiznico oz "prekompleksno" strukturo objekta
+                        // We throw an error, because if we get an error here it means that there is something wrong with our library or that the object structure is to complex
                         throw new Error('Something went wrong');
                 }
                 oppositeDiff.push(obj);
@@ -128,8 +128,8 @@ export class ConflictService {
         objectUuid: string = uuidv4(),
     ): SyncChamberRecordStructure {
 
-        // izracuj razlike
-        const diff = fast_json_patch.compare(existingRecordStructure.record, dataToSend);  // obrnemo diff, da bomo lahko prisli iz trenutnega stanja ('record') v prejsnja stanja
+        // calculate differences
+        const diff = fast_json_patch.compare(existingRecordStructure.record, dataToSend);  // reverse diff so that we get from current ('record') state to previous state obrnemo diff
         const revertedDiff = this.convertDiffValuesInOpposite(existingRecordStructure.record, cloneDeep(diff));
         return this.prepareSyncRecordChamberStructure(objectUuid, dataToSend, revertedDiff.length > 0 ? revertedDiff : undefined, existingRecordStructure, recordStatus);
     }

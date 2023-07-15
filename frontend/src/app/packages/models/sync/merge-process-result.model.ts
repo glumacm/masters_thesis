@@ -27,7 +27,7 @@ export class MergeProcessResult implements MergeProcessResultI {
                 const test = plainObject.mergedDbObject;
                 // Object.assign(docItem, objectWithChanges);
 
-                // Odstranimo lastnosti, ki ne obstajajo v novem stanju
+                // We remove properties that do not exist in new state
                 const objKeys = Object.keys(test);
                 for (let key of objKeys) {
                     if (!isFinite(test[key]) && moment.utc(test[key]).isValid()) {
@@ -45,23 +45,7 @@ export class MergeProcessResult implements MergeProcessResultI {
 
 }
 
-// export class MergeProcessResult1<T> implements MergeProcessResultI {
-//     conflicts: any[] = [];
-//     mergedDbObject: TheTestI = {} as TheTestI;
 
-
-
-// }
-
-
-// export interface TheTestI {
-//     uuid: string;
-//     lastModified: Date;
-//     description: string;
-//     name: string;
-//     randomInteger: number;
-//     id:string;
-// }
 export class TheTest {
     uuid?: string;
     lastModified?: Date;

@@ -4,11 +4,11 @@ import { Operation } from 'fast-json-patch';
 import { MergeModeEnum } from "../enums/MergeModeEnum";
 
 /**
- * Kaj moramo vse vedeti iz konfiguracije za konflikte?
+ * What do we need to know about conflicts from configuration?
  * 
- * 1. Za katere objekte velja konfiguracija
- * 2. tabelo v kateri hranimo skupine fieldov -> en vnos v tabeli (torej ena notranja pod tabela) predstavlja "EN" kontekst konflikta znotraj definiranega objekta
- * 2. Kaksen mode ima vsak field
+ * 1. To which objects/entities does configuration apply
+ * 2. Table in which we store groups of fields -> one entry in table  represents ONE condition where conflict should be checked/thrown inside the object
+ * 2. Which mode does field use for conflicts
  */
 
 
@@ -16,21 +16,21 @@ import { MergeModeEnum } from "../enums/MergeModeEnum";
 /**
  * ConflictManagerInterface
  * 
- * To ni najhitrejsi pristop, saj bi potencialno preiskovanje po vseh 'groups' povzrocilo:  `n*m*k` zahtevnost. Kjer n==st.fieldov v posamezni 'groups' tabeli, m == st. fieldov v `diff` in k == st. vrstic v groups tabeli !!!!
+ * This is the fastest approach, since potential iterations through all `groups` could cause `n*m*k` time complexity. Where n == number of fields in one group, m == number of fields in `diff and k == number of lines in each group
  */
 export interface ConflictManagerInterface {
     conflict_field_groups: { [key: string]: { groups: Array<Array<ConflictField>> }};
-    default_merge_resolution: MergeModeEnum; // Ta vrednost je ROLLBACK vrednost, ce nek objekt nima definiranega polja `defaul_merge_resolution`
+    default_merge_resolution: MergeModeEnum; // This value is a ROLLBACK/DEFAULT value, if some object does not have a definition for merging process
 }
 
 /**
- * Ta nacin bo deloval tako:
+ * This will work in a following way:
  * 
- * - Imamo seznam fieldov, ki morajo nujno javiti konflikt. Vsako polje ima lashko svoj "auto" merge nastavitev. Ne bomo pa gledali kombinacij fieldov, ker to privede do NEPREDSTAVLJIVE zahtevnosti !!!
+ * - We have a list of fields which is required to raise a conflict. Each field has it's own "auto-merge" setting. But we will not check for combination of field conditions, since this complicates a lot of things - especially time complexity!!!!
  */
 export interface RestrictedConflictManagerInterface {
     conflict_field_groups: { [key: string]: { groups: Array<ConflictField> }};
-    default_merge_resolution: MergeModeEnum; // Ta vrednost je ROLLBACK vrednost, ce nek objekt nima definiranega polja `defaul_merge_resolution`
+    default_merge_resolution: MergeModeEnum; // This value is a ROLLBACK/DEFAULT value, if some object does not have a definition for merging process
 }
 
 
@@ -42,15 +42,15 @@ export interface ConflictField {
 
 // @DEPRECATED
 interface ConflictFieldGroup {
-    default_merge_resolution: MergeModeEnum; // Ce tega podatka ni, revertaj na podatek iz parenta (ConflictManagerInterface). Ta podatek je povozen, ce posamezno polje ima defiran `merge_resolution`
+    default_merge_resolution: MergeModeEnum; // If this data is missing, then revert to data from parent (ConflictManagerInterface). This data is overwritten if each field has `merge_resolution` value defined.
 }
 
 
 //example #1
 const conflictGroup = {
     'objectType1': {
-        groups: [ // Ce se vsaj ena verzija kombinacije spremmemb pojavi v `diff` je potrebno javiti konflikt
-            [ // Skupina 1
+        groups: [ // If at least one change in `diff` is found we need to immediatelly raise a conflict.
+            [ // Group 1
                 {
                     fieldName: 'field1',
                     mergeResolution: MergeModeEnum.DEFAULT
@@ -60,7 +60,7 @@ const conflictGroup = {
                     mergeResolution: MergeModeEnum.NEWER_CHANGES
                 }
             ],
-            [ // Skupina 2
+            [ // Group 2
                 {
                     fieldName: 'field1',
                     mergeResolution: MergeModeEnum.DEFAULT

@@ -30,7 +30,6 @@ export function sync_entity_records_batch(
   records: SynchronizationSyncEntityRecord[],
   requestUuid: string,
 ): Promise<any> {
-  // Zaenkrat bom ustvaril avtomatsko uuid ob vstopu v funkcijo. Kasneje je potrebno videti, ali bo to potrebno poslati kot del argumentov
   const consoleOutput = new CustomConsoleOutput('sync_entity_records_batch', CONSOLE_STYLE.promise_success!);
   const jobUuid = requestUuid;
   const dataToSync = { entityName, jobUuid, data: records } as SynchronizationSyncEntityPostData;
@@ -40,7 +39,7 @@ export function sync_entity_records_batch(
     `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/${CONFIGURATION_CONSTANTS.SYNC_ENTITY_PATH_NAME}`,
     dataToSync,
     {
-      timeout: 1000, // Za testiranje scenarija, ko pride do timeouta
+      timeout: 1000, // For testing timeout scenario
     }
   );
 }
@@ -72,7 +71,6 @@ export function retry_re_evaluation(
 class ExampleClassForComlinkProxy {
   constructor() {}
   exampleFunction() {
-    console.log('Just not meant to be');
     return 'foo';
   }
 }

@@ -1,8 +1,4 @@
-import Dexie, { DBCoreRangeType, PromiseExtended } from "dexie";
-import { of } from "rxjs";
 import { CONFIGURATION_CONSTANTS, DATABASE_TABLES_MAPPER } from "../configuration";
-import { IAppDB, AAppDB} from "../interfaces/database";
-import { ChamberSyncObjectStatus } from "../interfaces/sync-storage.interfaces";
 import { console_log_with_style, CONSOLE_STYLE } from "../utilities/console-style";
 import { AppDB } from "./db";
 

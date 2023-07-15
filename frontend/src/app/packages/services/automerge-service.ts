@@ -7,21 +7,22 @@ import { CONSOLE_STYLE, CustomConsoleOutput } from '../utilities/console-style';
 import { ConflictService } from './conflict-service';
 import { CONFIGURATION_CONSTANTS } from '../configuration';
 /**
- * @description (pred 09.04.2023) Ta "service" NI nadomestilo za AutoMergeWrapper, ampak je kot neko dopolnilo, ker imamo omejitve z Workerji.
- * Namrec, ce bi hotel neke funkcije uporabiti preko AutoMergeWrapperja v workerju, mi to ne bi delovalo pravilno, ker
- * worker, ne more prenesti instanc razredov preko Proxy-ja. Kar pomeni, da v primeru, ko hocem pretvoriti JS objekt v Automerge.doc,
- * mi to ne bo pravilno preneslo celotno Automerge.doc instanco, ampak le "oskrunjen" objekt, ki hrani le property-je in ne ostalih zadev
- * vezanih na Automerge.doc instanco!
+ * @description (before 09.04.2023) 
+ * This service is not substitute for AutoMergeWrapper, but should be used as an extension because we have problems with workers.
+ * Because if we want to use functions with AutoMergeWrapper in a worker, this would not work because worker cannot transfer
+ * references to objects via Proxy (channel). Which means that if I want to convert JS object in Automerge.doc
+ * this would not transfer entire Automerge.doc instance because of https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
  *  
- * @description (dne: 09.04.2023) Ker sem ugotovil, da me AutoMerge - UBIJE - s funkcijo .merge , bom moral pripraviti spet vso logiko s svojo custom
- * knjiznico (vsaj za podporo osnovnih operacij).
+ * @description (on the day: 09.04.2023) 
+ * Because I found out that AutoMerge.merge function does not apply with my process I will need to use custom logic for basic merge/conflict logic (at least support for basic operations)
  * 
- * Trenutna identifikacija potrebnih operacij:
+ * Currently these are basic functions that I need:
  * - MERGE
  * - COMPARE
  * 
- * Prejsnja logika ima ze nekaj funkcij prepripravljenih. 
- * Service sem poimenoval `SyncLibAutoMerge`, ker zelim ponazoriti, da je to nek CUSTOM automerge-like service, ki nima prav dosti veze z AutoMerge.
+ * Previous logic already has some of this functionalities. 
+ * I renamed the service to `SyncLibAutoMerge` because I want to indicate that this is some CUSTOM automerge-like service, which does not have to do
+ * anything with AutoMerge!
  */
 export class SyncLibAutoMerge {
     private conflictService: ConflictService;
@@ -32,10 +33,10 @@ export class SyncLibAutoMerge {
     }
 
     /**
-     * Ta funkcija bo vrnila odgovor kaj moramo narediti, da iz `object1` dobimo `object2` - kaksne operacije moramo narediti, da iz `object1`, dobimo `object2`
-     * @param object1 {any} `source` object -> objekt iz katerega izhajamo
-     * @param object2 {any} `target` object -> objekt ki predstavlja trenutni/koncni objekt
-     * @returns {Operation[]} Vrne tabelo operacij, ki jih moramo narediti, da `object1` pretvorimo v `object2`.
+     * This function will return what do we need to apply to `object1` to get to state like in `object2` - which operation to apply
+     * @param object1 {any} `source` object -> object which needs transformation
+     * @param object2 {any} `target` object -> object which has the desired/target state
+     * @returns {Operation[]} Returns an array of operations which we need to apply to `object1` to get to state of `object2`
      */
     compareTwoObjects(object1: any, object2: any): Operation[] {
         // return fast_json_patch.compare(objectFromBE, parameters.preparedRecord.record);
@@ -51,9 +52,9 @@ export class SyncLibAutoMerge {
     }
 
     async applyNewChangesToExistingSyncObject(objectUuid: string, objectDataWithChanges: any, preExisting: SyncChamberRecordStructure, objectStatus: ChamberSyncObjectStatus = ChamberSyncObjectStatus.pending_sync): Promise<SyncChamberRecordStructure> {
-        // Popravki:
-        // 1. izracunaj razlike
-        // 2. dodaj spremembe
+        // Corrections:
+        // 1. calculate differences
+        // 2. add differences
         const diffForReverse = this.compareTwoObjects(objectDataWithChanges, preExisting.record);
         const diff = this.compareTwoObjects(preExisting.record, objectDataWithChanges);
         const diffObject = {changes: [diffForReverse], changesDatetime: new Date(), changesAppliedOnBE: false} as SyncChamberRecordChangesStructure; //
@@ -61,7 +62,7 @@ export class SyncLibAutoMerge {
         const newChanges = preExisting?.changes?.length > 0 ? [...preExisting.changes, diffObject] : [diffObject];
         const clonedExisting = cloneDeep(preExisting.record);
 
-        // prepareSyncRecordChamberStructure -> predpostsavlja, da v funkcijo posljem samo tabelo novih sprememb in tudi obstojece spremembe preko `existinInstance`....
+        // prepareSyncRecordChamberStructure -> assumption, that we send to the function only an array of new changes. The existing changes should be included in the parameter `existingInstance`
         let dataToReturn: SyncChamberRecordStructure = this.conflictService.prepareSyncRecordChamberStructure(
             objectUuid,
             this.applyPatch(clonedExisting, diff),
@@ -78,18 +79,19 @@ export class SyncLibAutoMerge {
         let clonedLocalData = cloneDeep(localData);
         let dataToReturn = clonedBeData;
 
-        // Izlusciti iz pravega objekta podatek
+        // Get data from correct object
         
         /**
-         * TODO: -> zaenkrat je to nepotrebno!!
-         * - logika ki preveri ali rabimo operacijo DELETE
-         * - logika ki preveri ali rabimo operacijo REPLACE
-         * - logika ki preveri ali rabimo operacijo ADD
+         * TODO: -> currently this is not necessary
+         * - logic that checks if we need DELETE operation
+         * - logic that checks if we need REPLACE operation 
+         * - logic that checks if we need ADD operation
          */
 
-        // Sklepam, da beMergedData dobi v fieldih vrednost iz BE (konflitni podatki pa so podatki iz FE-ja)
+        // I assume that fields in `beMergedData` gets values from BE (but conflicted data is from FE)
         if (!useRemote) {
-            // Operation -- se izvede samo ce gre za sprejem lokalnih sprememb (NON-REMOTE). V nasprotnem primeru ohranimo podatek kot je - podatek iz BE.
+        
+            // Operation -- is executed only if we get changes from local (not from BE). Otherwise we keep data as it is - data from BE. 
             const op: ReplaceOperation<any> = {op: 'replace', value: beMergedData?.[conflict.fieldName], path: `/${conflict.fieldName}`} as ReplaceOperation<any>;
             op.value = localData?.[conflict.fieldName];
             dataToReturn = this.applyPatch(clonedBeData, [op]);
@@ -98,12 +100,12 @@ export class SyncLibAutoMerge {
         return dataToReturn;
     }
 
-    // Mogoce sploh ne bo potrebno tega uporabljati
+    // Maybe I will not need to use this
     /**
-     * Ta funkcija bi morala vrniti pravilno vrsto operacije: 'add'|'remove'|'copy'|'move'|'replace' ...
-     * Ampak glede na to, da po permutacijah ki se lahko zgodijo, sklepam, da bo `replace` dovolj za sedaj.
-     * 
-     * Primeri:
+     * This function will return correct name of operation: 'add'|'remove'|'copy'|'move'|'replace' ...
+     * But after seeing some test data I presume that for now only `replace` will do just fine.
+     *
+     * Examples:
      * LOCAL                    REMOTE
      * {f1: 'f11'}   <==>       {f1: 'f1'}      -> replace
      * {f1: 'f11'}   <==>       {f1: null}      -> replace
@@ -116,9 +118,9 @@ export class SyncLibAutoMerge {
      */
     identifyConflictPatchOperation(conflict: SyncConflictItem, syncRecordData: any, useRemote: boolean = true): string {
         if (useRemote) {
-            // moramo sprejeti podatek iz REMOTE objekta
+            // get data from BE object
         } else {
-            // podatek iz konflikta
+            // data from conflict
         }
         return 'replace';
     }

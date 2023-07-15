@@ -25,13 +25,13 @@ export interface CustomAxiosRequestConfig<T> extends AxiosRequestConfig<T> {
 
 
 /**
- * Trenutno najpopolnejsa struktura:
+ * At some point example of the structure:
  * {
  *      mockedResponseType: CustomAxiosMockedResponseEnum.SUCCESS, 
  *      mockedResponseData:
  *          {
  *              status: 200,
- *              response: // --> Ta objekt dobimo kot SUCCESS, ko bo axios v `then` vrnil podatek!!!
+ *              response: // --> This object is received as SUCCESS, when axios returns data in `then`!!!
  *                  {
  *                      data:
  *                          {
@@ -70,26 +70,15 @@ export class CustomAxios {
         }
     }
 
-    // static getAxios(): Axios {
-    //     if (!CustomAxios.axios) {
-    //         console.log('kolkrat pa ja');
-
-    //         CustomAxios.axios = axios.create();
-    //     }
-    //     console.log('kolkr pa ne?');
-
-    //     return CustomAxios.axios;
-    // }
-
 
     /**
-     * Glavni problem: kako zagotoviti da bomo vedno dobili stubData , ker naceloma bi moral sedaj stubData pripraviti le na eni tocki.
-     * Namesto da to na vsakem POST, GET requestu znotraj logike.
+     * Main problem: How to garantee that we will always get stubData, because stubData should be received only at one point
+     * Instead of doing it on each POST,GET request in the logic.
      * 
-     * Mogoce bo najboljsi nacin, da bodo glavni podatki "mutirani". To pomeni, da bi jih nastavil preko druge metode + lahko bi dodal podatke preko konstruktorja. Ker na tak nacin bi lahko dinamicno sproti spreminjal zeljene
-     * parametre. Tak nacin privede do enega problema: Main.ts in workerji morajo imeti funkcijo za nastavljati ta podatek, ker ga drugace ne morem nastaviti.
+     * Maybe the best way would be to have main data as "mutated" data. This means that data is set through another function + data could be passed into constructor. This way I would be able to dynamically 
+     * change data when needed. This way gives us one problem: Main.ts and workers have to have this function.
      * 
-     * DAJMO TESTIRATI TO HIPOTEZO !!!! --> To ze lahko potrdimo da ne bo delovalo, ker imamo isti problem s posiljanjem SyncLib eventov iz workerja (moramo imeti helper funkcijo)
+     * Lets test this question !!!! --> We confirm that this will not work, because we have the same problem with sending SyncLib events from worker (we need to have a helper function)
      * @param url 
      * @param method 
      * @param stubType 
@@ -97,7 +86,7 @@ export class CustomAxios {
      */
     private stubMoxios(url: string, method: string, stubType: CustomAxiosMockedResponseEnum, stubData: any) {
         if (this.mockedAxios) {
-            // Pricakujem da bomo imeli prednastavljene mocked response this.mockedResponse
+            // I expect that we will have preset response data this.mockedResponse
             if (this.mockedResponse?.mockedResponseType) {
                 // if (stubType === CustomAxiosMockedResponseEnum.SUCCESS) {
                 if (this.mockedResponse.mockedResponseType === CustomAxiosMockedResponseEnum.SUCCESS) {
@@ -119,9 +108,9 @@ export class CustomAxios {
     public get(url: string, config?: CustomAxiosRequestConfig<any>): Promise<any> {
         if (this.mockedAxios) {
             /**
-             * Ideja, ce bi prislo do pretiranega nastavljanja istega STUBA:
-             *  + naredim nek mapper, ki bo imel strukturo: {<url> : { <axios_method>: {<stub_response> : <[ERR, SUCCESS, ....]>}}}
-             * Na podlagi tega bi vedel za katere moram dodati nov stub ali ne.
+             * Idea: If we would need to set same STUB to many times:
+             *  + we create a mapper which includes structure: {<url> : { <axios_method>: {<stub_response> : <[ERR, SUCCESS, ....]>}}}
+             * based on this we would know which which new stub to add or not.
              */
             this.stubMoxios(url, 'get', CustomAxiosMockedResponseEnum.SUCCESS, config?.mockedData);
         }
@@ -131,9 +120,9 @@ export class CustomAxios {
     public post(url: string, data: any, config?: CustomAxiosRequestConfig<any>): Promise<any> {
         if (this.mockedAxios) {
             /**
-             * Ideja, ce bi prislo do pretiranega nastavljanja istega STUBA:
-             *  + naredim nek mapper, ki bo imel strukturo: {<url> : { <axios_method>: {<stub_response> : <[ERR, SUCCESS, ....]>}}}
-             * Na podlagi tega bi vedel za katere moram dodati nov stub ali ne.
+             * Idea: If we would need to set same STUB to many times:
+             *  + we create a mapper which includes structure: {<url> : { <axios_method>: {<stub_response> : <[ERR, SUCCESS, ....]>}}}
+             * based on this we would know which which new stub to add or not.
              */
             this.stubMoxios(url, 'post', CustomAxiosMockedResponseEnum.SUCCESS, config?.mockedData);
         }

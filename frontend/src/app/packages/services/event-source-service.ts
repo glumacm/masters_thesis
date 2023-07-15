@@ -17,18 +17,19 @@ export class EventSourceService {
     public eventSourceStream: Subject<EventSourceStreamEvent>;
 
     /**
-     * Ta zadeva ne more biti "singular", ker potem imamo problem z logiko znotraj Web Workerjev. Zato bom zaenkrat
-     * to implementiral kot navaden service. 
-     * POMEMBNO: Ko bom to dodajal v workerje, je potrebno imeti logiko, ki bo zaprla eventsource!!!!
-     * Konec koncev, ima tako edino smisel, da imam event source nastavljen v SyncWorkerju (ker tam bom kontroliral in dodajal zadeve povezane s sinhornizacijo)
+     * This "service" cannot be `singular` because otherwise I have problem with Web worker logic.
+     * That is why I will need to implement this as an ordinary service, that does not hold any state.
      * 
-     * Se ena POMEMBNA informacija:
-     * Iz BE bom poslal specificno strukturo:
+     * IMPORTANT: When I add this to some worker I need to add logic that will close the event source!!!
+     * At the end it makes sense that I have event source initiated in the SyncWorker (because there I will control everything related to synchronisation and network!!)
+     * 
+     * One more IMPORTANT info:
+     * I will send from BE specific structure:
      * {
      * entityName: '',
      * data: {...}
      * }
-     * Na tak nacin bom uspel filtrirati podatke
+     * This way I will be able to filter out the data
      */
     constructor(
         eventSourceUrl: string,

@@ -111,13 +111,13 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     }
     try {
       const exportedFileSync = await this.exportToFile('sync');
-      this.consoleOutput.output('To je rezultat  ', exportedFileSync);
+      this.consoleOutput.output('SyncResult  ', exportedFileSync);
       const exportedFileSyncConflict = await this.exportToFile('sync_conflict');
-      this.consoleOutput.output('To je rezultat  ', exportedFileSyncConflict);
+      this.consoleOutput.output('ConflictResult  ', exportedFileSyncConflict);
       const exportedFileSyncTemp = await this.exportToFile('sync_temp');
-      this.consoleOutput.output('To je rezultat  ', exportedFileSyncTemp);
+      this.consoleOutput.output('Temp result ', exportedFileSyncTemp);
     } catch (error) {
-      this.consoleOutput.output('Napaka pri exportu podatkov!!!', error);
+      this.consoleOutput.output('Export data error!!!', error);
 
     }
     this.setSimulationFinished(true);
@@ -137,9 +137,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       }
     } else if (step.action === SimulationStepActionEnum.BATCH_SYNC) {
       await this.syncLib.startBatchSync();
-    } else if (step.action === SimulationStepActionEnum.CHANGE_NETWORK) {
-      console.log('I LOSTTTTT');
-      
+    } else if (step.action === SimulationStepActionEnum.CHANGE_NETWORK) {      
       window.dispatchEvent(new Event(step.networkStatus));
     } else {
       this.consoleOutput.output(`Unrecognized step`, step);
@@ -179,7 +177,6 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
   }
 
   public async startSeleniumCustomData1() {
-    console.log('WHEN YOU SAY YOU HAD ENUGH');
     console.log('This is browserName ', this.basicInputForm.controls['browserName'].value);
     // return;
     const preSetUUIDsInput = this.basicInputForm.controls['uuidValues'].value;
@@ -215,13 +212,13 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       this.consoleOutput.output('Subscription is set and executed with event: ', event);
       try {
         const exportedFileSync = await this.exportToFile('sync');
-        this.consoleOutput.output('To je rezultat  ', exportedFileSync);
+        this.consoleOutput.output('Sync result  ', exportedFileSync);
         const exportedFileSyncConflict = await this.exportToFile('sync_conflict');
-        this.consoleOutput.output('To je rezultat  ', exportedFileSyncConflict);
+        this.consoleOutput.output('Conflict result  ', exportedFileSyncConflict);
         const exportedFileSyncTemp = await this.exportToFile('sync_temp');
-        this.consoleOutput.output('To je rezultat  ', exportedFileSyncTemp);
+        this.consoleOutput.output('Temp result  ', exportedFileSyncTemp);
       } catch (error) {
-        this.consoleOutput.output('neka napaka', error);
+        this.consoleOutput.output('Some export error', error);
 
       }
       this.setSimulationFinished(true);
@@ -252,7 +249,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
   public async exportToFile(databaseName: string = 'sync') {
     // const db = new AppDB(databaseName);
     // await db.finishSetup();
-    this.consoleOutput.output(`Kdaj se izvede export`);
+    this.consoleOutput.output(`ExportTofile started`);
     let db;
     if (databaseName == 'sync_conflict') {
       db = await this.syncLib.getConflictDB();

@@ -96,5 +96,5 @@ export const RETRY_TABLES_CONFIGURATION : { [key: string]: number} = { // should
 
 export const ALLOW_MERCURE_PUSH_SERVICE_SYNC = true;
 export const BASE_TOPIC_NAME = 'entities'
-export const MERCURE_SYNC_ENTITIES = ['AreAlive1', 'AreAlive2']; // Ideja: Znotraj te strukture, bi hranil podatke, na katere entitete se je potrebno "prijaviti"
+export const MERCURE_SYNC_ENTITIES = ['AreAlive1', 'AreAlive2']; // IDEA: Inside this structure, I would keep data to which entities to subscribe? Currently I use one generic topic for all entities!!!
 export const DEFAULT_MERCURE_SYNC_POLICY: EventSourcePolicyEnum = EventSourcePolicyEnum.SYNC_ALL;

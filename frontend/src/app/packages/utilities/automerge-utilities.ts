@@ -10,13 +10,13 @@ export type AutoMergeDoc = Automerge.Doc<any>;
 
 export function cloneSyncObject(object: SyncChamberRecordStructure): SyncChamberRecordStructure {
     const newObject = cloneDeep(object);
-    newObject.record = Automerge.load(Automerge.save(object.record)); // Moramo na novo nastaviti Document (ker cloneDeep ga ne pravilno klonira);
+    newObject.record = Automerge.load(Automerge.save(object.record)); // We need to set Document (because cloneDeep does not correctly clone the data)
     return newObject;
 }
 
 export function cloneSyncObjectWithEncoded(object: SyncChamberRecordStructure): SyncChamberRecordStructure {
     const newObject = cloneDeep(object);
-    newObject.record = Automerge.load(object.record); // Moramo na novo nastaviti Document (ker cloneDeep ga ne pravilno klonira);
+    newObject.record = Automerge.load(object.record); // We need to set Document (because cloneDeep does not correctly clone the data)
     return newObject;
 }
 
@@ -39,8 +39,8 @@ export function convertAutomergeDocToUint8Array(doc: Automerge.Doc<any>): Uint8A
 
 /**
  * 
- * @param targetDoc V AutoMerge svetu, predstavlja ta dokument dokument, v katerem se bo zdruzilo oba dokumenta - v .merge ga podamo kot REMOTE parameter ceprav je to dejansko lokalni podatek
- * @param initDoc V AutoMerge svetu, predstavlja ta dokument dokument, katerega bomo mergali v neki drugi dokument, v tem primeru dokument v @var targetDoc . V .merge podamo ta parameter kot LOCAL, ceprav je to dejansko podatek iz REMOTE.
+ * @param targetDoc In AutoMerge world, this data represent a document in which we will merge both documents - in merge we add as REMOTE parameter even though this is data from LOCAL
+ * @param initDoc In AutoMerge world, this data represent a document in which we will merge both documents - in merge we add as LOCAL parameter even though this is data from REMOTE
  * @returns 
  */
 export function mergeTwoAutoMergeDocs(targetDoc: Automerge.Doc<any>, initDoc: Automerge.Doc<any>): Automerge.Doc<any> {
@@ -49,7 +49,7 @@ export function mergeTwoAutoMergeDocs(targetDoc: Automerge.Doc<any>, initDoc: Au
     const targeDocClone = changeDocWithNewObject(initialiseDocument(), Automerge.toJS(Automerge.clone(targetDoc)));
     const initDocClone = changeDocWithNewObject(initialiseDocument(), Automerge.toJS(Automerge.clone(initDoc)));
 
-    return Automerge.merge(initDocClone, targeDocClone); // V mojem scenariju je Local (prvi argument) == objekt iz BE, Remote (drugi argument) == objekt iz FE -> Ker za mene je pomembno da objekt, ki bo shranjen na FE kaze na zadnje podatke, ki smo jih dobili iz BE
+    return Automerge.merge(initDocClone, targeDocClone); // In my use-case Local (first argument) == object from BE, Remove (second argument) == object from FE -> Because for me  it is important that object which will be stored on FE shows the latest data we received from BE.
 }
 
 export function convertObjectToAutomergeDoc(object: any): Automerge.Doc<any> {
@@ -63,7 +63,7 @@ export function changeDocWithNewObject(doc: Automerge.Doc<any>, objectWithChange
         const newStateKeys = Object.keys(objectWithChanges);
         Object.assign(docItem, objectWithChanges);
 
-        // Odstranimo lastnosti, ki ne obstajajo v novem stanju
+        // Remove properties that do not exist in new state
         const keysAfterChange = Object.keys(docItem);
         for (let key of oldStateKeys) {
             if (!newStateKeys.includes(key)) {
@@ -110,7 +110,7 @@ export function getChangesBetweenObjectAndExistingDoc(objectUuid: string, latest
         undefined,
         ChamberSyncObjectStatus.pending_sync
     ) as SyncChamberRecordStructure;
-    // Preverimo razlike
+    // check differences
     // const documentWithNewChanges = changeDocWithNewObject(preExisting.record, objectDataWithChanges);
     // const documentWithNewChanges = changeDocWithNewObject(previousState, latestState);
     // const latestObjectStateToDoc = changeDocWithNewObject(initialiseDocument(), objectDataWithChanges);
@@ -124,7 +124,7 @@ export function getChangesBetweenObjectAndExistingDoc(objectUuid: string, latest
     const changesToAppend = convertAutomergeChangeToCustomChange(latestChanges);
 
     if (changesToAppend?.length > 0) {
-        // Samo ce zaznamo nove spremembe, spremeni tudi lastModified
+        // Only if we recognise new changes , change also lastModified
         dataToReturn.lastModified = new Date();
         dataToReturn.changes.push(conflictService.prepareRecordChangesStructure(
             changesToAppend,
