@@ -1,3 +1,5 @@
+import { CONFIGURATION_CONSTANTS } from "../configuration";
+
 export const CONSOLE_STYLE: ConsoleStyles = {
     white_and_black: 'background-color: #FFFFFF; color: #000000',
     black_and_white: 'background-color: #000000; color: #FFFFFF',
@@ -54,11 +56,16 @@ export class CustomConsoleOutput {
     constructor(groupLabel: string, consoleStyle: string) {
         this.consoleStyle = consoleStyle;
         this.groupLabel = groupLabel
-        console.group(groupLabel);
+        if (CONFIGURATION_CONSTANTS.DEBUG_MODE) {
+            console.group(groupLabel);
+        }
 
     }
 
     output(message: string, data: any = null) {
+        if (!CONFIGURATION_CONSTANTS.DEBUG_MODE) {
+            return;
+        }
         const now = new Date();
         console.log(`%c %s %s %c${message}`, CONSOLE_STYLE.red_and_white!,this.groupLabel, now.toISOString(), this.consoleStyle);
         if(data) {

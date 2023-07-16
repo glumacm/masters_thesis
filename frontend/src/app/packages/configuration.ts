@@ -33,7 +33,10 @@ export const CONFIGURATION_CONSTANTS = {
     SHORT_ENTITIY_NAME_TO_OBJECT_NAME: {
         'TestEntity': 'testEntity',
         'TheTest': 'theTtest',
-    } as any
+    } as any,
+    ALLOW_AUTOMATIC_SYNC: true,
+    AUTOMATIC_SYNC_INTERVAL: 7500, // in miliseconds
+    DEBUG_MODE: true, // boolean
 }
 
 

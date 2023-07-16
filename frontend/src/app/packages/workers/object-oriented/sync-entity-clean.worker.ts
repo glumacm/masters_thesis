@@ -56,6 +56,8 @@ export class SyncEntityClean {
     private syncLibAutoMerge: SyncLibAutoMerge;
     private conflictService: ConflictService;
     private customAxios: CustomAxios;
+    private automaticSyncInterval: any;
+    private syncInProgress: boolean = false;
 
     // external services
 
@@ -358,121 +360,149 @@ export class SyncEntityClean {
         await this.finishSyncingDBSetup(); // this creates instance for db and sets listener for never versions of the database
         await this.finishTempDBSetup();
         await this.finishSyncConflictDBSetup();
+        await this.startBatchSyncOnInterval();
         return;
     }
 
+    async startBatchSyncOnInterval(): Promise<void> {
+        if (this.automaticSyncInterval) {
+            clearInterval(this.automaticSyncInterval);
+        }
+        if (CONFIGURATION_CONSTANTS.ALLOW_AUTOMATIC_SYNC) {
+            this.automaticSyncInterval = setInterval(async () => {
+                this.consoleOutput.output(`Starting automatic interval`);
+                if (this.syncInProgress) {
+                    this.consoleOutput.output(`Cannot start sync - sync already in progress`);
+                    return;
+                }
+                await this.startBatchSync();
+
+            }, CONFIGURATION_CONSTANTS.AUTOMATIC_SYNC_INTERVAL);
+        }
+        return;
+        
+    }
+
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
+        this.consoleOutput.output(`Starting BATCH SYNC`);
         let initialTimer = 200;
         const timerSteper = 100;
+        this.syncInProgress = true;
         const timeoutFunction = (event: any, timer: number) => {
             // This is used because otherwise event is sent before the actual sync call is finished....!!!-
             setTimeout(async ()=>{
                 await this.sendNewEventNotification(event);
             }, timer);
         };
-        if (this.networkStatus === NetworkStatusEnum.OFFLINE) {
-            // await this.sendNewEventNotification({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification);
-            timeoutFunction({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification, timerSteper);
-            return;
-        }
-        // 1. Sprehodim se cez vsako tabelo v SYNC bazi in poiscemo podatke, ki imajo status == pending_sync
-        const syncDB = await this.getSyncDB();
-        const mapper = {} as any;
-        const mapEntityToUuids = {} as any;
-        for (let syncTable of syncDB.tables)
-            for (let i = 0; i <= syncDB.tables.length; i++) {
-                // za vsako tabelo poiscemo podatke
-                const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
-
-                if (tablePendingObjects && tablePendingObjects.length > 0) {
-                    mapper[syncTable.name] = tablePendingObjects;
-                    mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
-                }
+        try {
+            
+            if (this.networkStatus === NetworkStatusEnum.OFFLINE) {
+                // await this.sendNewEventNotification({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification);
+                timeoutFunction({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification, timerSteper);
+                return;
             }
+            // 1. Sprehodim se cez vsako tabelo v SYNC bazi in poiscemo podatke, ki imajo status == pending_sync
+            const syncDB = await this.getSyncDB();
+            const mapper = {} as any;
+            const mapEntityToUuids = {} as any;
+            for (let syncTable of syncDB.tables)
+                for (let i = 0; i <= syncDB.tables.length; i++) {
+                    // za vsako tabelo poiscemo podatke
+                    const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
 
-        for (let property of Object.keys(mapper)) {
-            // Poslji na zahtevo na BE!!
-            if (mapper[property] && mapper[property].length > 0) { // Property === table name
-                const uuids = mapEntityToUuids[property];
-                if (!uuids || uuids.length == 0) {
-                    continue;
-                }
-                /**
-                 * Tukaj bi bilo smiselno razmisliti o tem kako resiti bolj "pametno".
-                 * Mogoce za magistrsko je ok, ampak za nadaljni razvoj, bi bilo smiselno imeti nek stack/queue
-                 * 
-                 * Za nasledji korak, bi jaz pripravil enak postopek kot pri SINGLE syncu -> imamo success logiko in error logiko
-                 * 
-                 * Predlagam, da za response iz BE uporabim Tabelo istega classa kot imamo za SINGLE sync!
-                 */
-
-                // 
-                /**
-                 * TODO: Zdi se mi, da manjka logika, da se podatki nastavijo v syncing + brisanje iz syncing po koncu! + logika, ki preveri ali je podatek v syncing??? (naceloma bi moral ze iz sync.objectStatus dobiti pravo zadevo)
-                 * 
-                 * Velika dilema: Zakaj bi rabil syncingDB, ce pa naceloma imam v sync db ustrezno stanje + lahko dodam se manjkajoci podatek za `retries` in to je to...?
-                 * Logika:
-                 *      -   na podlagi `uuids` + sync tabele ustvarimo syncingDB entryje
-                 */
-                try {
-                    const itemsToSync = await syncDB.table(property)
-                        .filter(
-                            (obj: SyncChamberRecordStructure) => obj.localUUID.includes(uuids)
-                        );
-                    const itemsToSyncAsArray = await itemsToSync.toArray();
-
-                    // Ustvarimo syncing podatke
-                    let syncingDBreference = await this.getSyncingDB();
-                    if (!(await this.doesTableExistInDB(syncingDBreference, property))) {
-                        this.syncingDB = await syncingDBreference.changeSchemaInstance(syncingDBreference, { [property]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME] });
-                        syncingDBreference = this.syncingDB;
+                    if (tablePendingObjects && tablePendingObjects.length > 0) {
+                        mapper[syncTable.name] = tablePendingObjects;
+                        mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
                     }
-
-                    // Ustvarimo Syncing entryje
-                    itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
-                        const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
-                        await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
-                    });
-
-                    // Nastavimo sync entryje na in_sync
-                    await itemsToSync.modify((obj: SyncChamberRecordStructure) => obj.objectStatus = ChamberSyncObjectStatus.in_sync);
-
-                    const beResult = await this.batch_single_entity_sync(property, mapper[property].map((data: SyncChamberRecordStructure) => {
-                        const newData = data.record;
-                        newData['uuid'] = data.localUUID;
-                        newData['lastModified'] = data.lastModified;
-                        return newData;
-                    })).then(
-                        (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids),
-                        (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids),
-                    );
-                } catch (exception) {
-                    // TODO: po vsej verjetnosti ce pride ddo kaksne napake ki je nise mpredpostavil
-                    // this.sendNewEventNotification(
-                    //     {
-                    //         type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
-                    //         message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
-                    //         error: exception,
-                    //     } as SyncLibraryNotification
-                    // );
-                    timeoutFunction({
-                        type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
-                        message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
-                        error: exception,
-                    } as SyncLibraryNotification, initialTimer);
-                    initialTimer+=timerSteper;
-                    this.consoleOutput.output(`startBatchSync: napaka ki je nisem prepostavil: `, exception);
                 }
-            }
 
+            for (let property of Object.keys(mapper)) {
+                // Poslji na zahtevo na BE!!
+                if (mapper[property] && mapper[property].length > 0) { // Property === table name
+                    const uuids = mapEntityToUuids[property];
+                    if (!uuids || uuids.length == 0) {
+                        continue;
+                    }
+                    /**
+                     * Tukaj bi bilo smiselno razmisliti o tem kako resiti bolj "pametno".
+                     * Mogoce za magistrsko je ok, ampak za nadaljni razvoj, bi bilo smiselno imeti nek stack/queue
+                     * 
+                     * Za nasledji korak, bi jaz pripravil enak postopek kot pri SINGLE syncu -> imamo success logiko in error logiko
+                     * 
+                     * Predlagam, da za response iz BE uporabim Tabelo istega classa kot imamo za SINGLE sync!
+                     */
+
+                    // 
+                    /**
+                     * TODO: Zdi se mi, da manjka logika, da se podatki nastavijo v syncing + brisanje iz syncing po koncu! + logika, ki preveri ali je podatek v syncing??? (naceloma bi moral ze iz sync.objectStatus dobiti pravo zadevo)
+                     * 
+                     * Velika dilema: Zakaj bi rabil syncingDB, ce pa naceloma imam v sync db ustrezno stanje + lahko dodam se manjkajoci podatek za `retries` in to je to...?
+                     * Logika:
+                     *      -   na podlagi `uuids` + sync tabele ustvarimo syncingDB entryje
+                     */
+                    try {
+                        const itemsToSync = await syncDB.table(property)
+                            .filter(
+                                (obj: SyncChamberRecordStructure) => obj.localUUID.includes(uuids)
+                            );
+                        const itemsToSyncAsArray = await itemsToSync.toArray();
+
+                        // Ustvarimo syncing podatke
+                        let syncingDBreference = await this.getSyncingDB();
+                        if (!(await this.doesTableExistInDB(syncingDBreference, property))) {
+                            this.syncingDB = await syncingDBreference.changeSchemaInstance(syncingDBreference, { [property]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME] });
+                            syncingDBreference = this.syncingDB;
+                        }
+
+                        // Ustvarimo Syncing entryje
+                        itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
+                            const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
+                            await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
+                        });
+
+                        // Nastavimo sync entryje na in_sync
+                        await itemsToSync.modify((obj: SyncChamberRecordStructure) => obj.objectStatus = ChamberSyncObjectStatus.in_sync);
+
+                        const beResult = await this.batch_single_entity_sync(property, mapper[property].map((data: SyncChamberRecordStructure) => {
+                            const newData = data.record;
+                            newData['uuid'] = data.localUUID;
+                            newData['lastModified'] = data.lastModified;
+                            return newData;
+                        })).then(
+                            (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids),
+                            (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids),
+                        );
+                    } catch (exception) {
+                        // TODO: po vsej verjetnosti ce pride ddo kaksne napake ki je nise mpredpostavil
+                        // this.sendNewEventNotification(
+                        //     {
+                        //         type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
+                        //         message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
+                        //         error: exception,
+                        //     } as SyncLibraryNotification
+                        // );
+                        timeoutFunction({
+                            type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
+                            message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
+                            error: exception,
+                        } as SyncLibraryNotification, initialTimer);
+                        initialTimer+=timerSteper;
+                        this.consoleOutput.output(`startBatchSync: napaka ki je nisem prepostavil: `, exception);
+                    }
+                }
+
+            }
+            // await this.sendNewEventNotification(
+            //     {
+            //         type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
+            //         message: 'Batch sync je zakljucen',
+            //         error: null,
+            //     } as SyncLibraryNotification
+            // );
         }
-        // await this.sendNewEventNotification(
-        //     {
-        //         type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
-        //         message: 'Batch sync je zakljucen',
-        //         error: null,
-        //     } as SyncLibraryNotification
-        // );
+        finally {
+            this.syncInProgress = false;
+        }
         timeoutFunction({
             type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
             message: 'Batch sync je zakljucen',
