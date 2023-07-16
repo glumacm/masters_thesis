@@ -365,6 +365,7 @@ export class SyncEntityClean {
         let initialTimer = 200;
         const timerSteper = 100;
         const timeoutFunction = (event: any, timer: number) => {
+            // This is used because otherwise event is sent before the actual sync call is finished....!!!-
             setTimeout(async ()=>{
                 await this.sendNewEventNotification(event);
             }, timer);
@@ -414,13 +415,11 @@ export class SyncEntityClean {
                  *      -   na podlagi `uuids` + sync tabele ustvarimo syncingDB entryje
                  */
                 try {
-                    this.consoleOutput.output(`everybody spredi zadi1`);
                     const itemsToSync = await syncDB.table(property)
                         .filter(
                             (obj: SyncChamberRecordStructure) => obj.localUUID.includes(uuids)
                         );
                     const itemsToSyncAsArray = await itemsToSync.toArray();
-                    this.consoleOutput.output(`everybody spredi zadi2`);
 
                     // Ustvarimo syncing podatke
                     let syncingDBreference = await this.getSyncingDB();
@@ -494,6 +493,7 @@ export class SyncEntityClean {
               message: 'Poskusimo ponovno pognati',
             } as SyncLibraryNotification
         );
+        return;
 
     }
 
@@ -511,6 +511,7 @@ export class SyncEntityClean {
                     message: `Could not sync batch for entity: ${entityName}`,
                 } as SyncLibraryNotification
             );
+            // throw new Error(`Error: ${SyncLibraryNotificationEnum.BATCH_SINGLE_ENTITY_FAILED}`)
             return;
         }
         switch (data.status) {
@@ -667,6 +668,8 @@ export class SyncEntityClean {
                 // await this.syncStatusSuccessLogicCustomAutoMerge(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName);
                 await this.syncStatusSuccessLogicCustomAutoMerge(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName, syncEntityResponseInstance.lastModified ?? new Date());
                 // await this.syncStatusSuccessLogic(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName);
+                const successEvent: SyncLibraryNotification = classTransformer.plainToClass(SyncLibraryNotification, { type: SyncLibraryNotificationEnum.BATCH_SINGLE_SYNC_SUCCESS, createdAt: new Date(), message: `Uspesno zakljucen sync ${objectUuid}`});
+                await this.sendNewEventNotification(successEvent);
                 break;
             case SyncEntityStatusEnum.CONFLICT:
                 await this.syncStatusConflictLogic(objectUuid, collectionName, syncEntityResponseInstance.mergedData?.mergedDbObject, syncEntityResponseInstance.mergedData?.conflicts ? syncEntityResponseInstance.mergedData?.conflicts : []); // Ampak ce pride do tukaj, ne bi smelo biti dvoma da imamo vsaj prazen Array
