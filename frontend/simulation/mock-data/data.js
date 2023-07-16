@@ -44,8 +44,8 @@ const agent1_upserts = [
         "entityName": "testEntity",
         "action": "UPSERT",
         "data": {
-            "firstInput": "Objekt2_1_1",
-            "secondInput": "Objekt2_2_1"
+            "firstInput": "Objekt2_1_2",
+            "secondInput": "Objekt2_2_2"
         },
         "recordId": "21abacaa-e1ce-475f-9573-201e44f437a3"
     },
@@ -53,8 +53,8 @@ const agent1_upserts = [
         "entityName": "testEntity",
         "action": "UPSERT",
         "data": {
-            "firstInput": "Objekt3_1_1",
-            "secondInput": "Objekt3_2_1"
+            "firstInput": "Objekt3_1_2",
+            "secondInput": "Objekt3_2_2"
         },
         "recordId": "5334f3ae-6db1-4b58-ac3b-603ca01ad83f"
     }
