@@ -84,7 +84,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
   /**
    * START SIMULATION 
    */
-  public async startSimulation() {
+  public async startSimulation(enableConcurrencyResolution = false) {
     let concurrencyProblem = false; // Moral sem nastaviti spremenljivko v tem kontekstu, ker drugace se vrednost ni pravilno zaznala znotraj te funkcije....
     this.eventsSubscription = SynchronizationLibrary.eventsSubject.subscribe(
       (event: SyncLibraryNotification) => {
@@ -105,7 +105,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
 
     this.eventsSubscription?.unsubscribe();
 
-    if (concurrencyProblem) {
+    if (concurrencyProblem && enableConcurrencyResolution) {
       await this.startSimulation();
       return;
     }
