@@ -969,10 +969,10 @@ export class SyncEntityClean {
             // return;
 
             //TODO: Odstrani delay-je
-            await delay(3000);
+            // await delay(3000);
             this.syncingDB!.table(entityName).where({ 'objectUuid': objectUuid }).delete(); // Vedno je lahko le en entry za isti UUID, zato ne rabimo dodatnega filtriranja
             // Potrebno je vrniti SYNC podatek v 'pending_sync' stanje.
-            await delay(5000);
+            // await delay(5000);
             await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => { obj.objectStatus = ChamberSyncObjectStatus.pending_sync });
 
         } else if (error.code === SynchronizationSyncStatus.ECONNABORTED) {
