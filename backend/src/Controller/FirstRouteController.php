@@ -3,6 +3,13 @@
 namespace App\Controller;
 
 use App\Service\SynchronizationSyncingEntry;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+
+class FirstRouteController extends AbstractController {
+    public function __construct()
+    {
+    }
+}
 
 
 enum ResponseMessageType
