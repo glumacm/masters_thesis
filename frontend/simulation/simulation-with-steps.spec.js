@@ -22,8 +22,7 @@ async function manipulateDriver(driver, driverIndex, shouldDestroy) {
    */
   // await delayCustom(1300);
   // await driver.sleep(2000);
-  console.log('we wree strinkng');
-  //To je prejsnja delujoca logika
+  // Previous example of calling the simulation
   // await driver.get(`http://localhost:4200/simulation-online-with-steps/${utilities.convertObjectToBase64String(mockData.agentsData[driverIndex])}`);
   // await driver.get(`http://localhost:4200/simulation-online-with-steps/${utilities.convertObjectToBase64String(mockData.agentsSimWithNetNoAuto[driverIndex])}`);
   // await driver.get(`http://localhost:4200/simulation-online-with-steps/${utilities.convertObjectToBase64String(mockData.agentsSimWithNetAndAuto[driverIndex])}`);
@@ -45,7 +44,6 @@ async function manipulateDriver(driver, driverIndex, shouldDestroy) {
   // return;
 
 
-  console.log('Yep i am here');
   let firstInput = await driver.findElement(By.id('firstInput'));
   await driver.wait(until.elementIsVisible(firstInput));
   let secondInput = await driver.findElement(By.id('secondInput'));
@@ -55,16 +53,12 @@ async function manipulateDriver(driver, driverIndex, shouldDestroy) {
   let browserName = await driver.findElement(By.id('browserName'));
   // await driver.wait(until.elementIsVisible(browserName));
   // await browserName.sendKeys(`${SIMLUATION_NAME}-${testData[driverIndex].agentName}`);
-  console.log('OCITNO TUKAJ ZABLOKIRA');
   let finishedLoading = await driver.findElement(By.id('loadingFinished'));
-  console.log('ALI CELO TUKAJ???');
   let simulationFinished = await driver.findElement(By.id('simulationFinished'));
   
   // Zacasno zakomentirano, ker zelim preveriti kje je problem s sync_conflict bazo
-  console.log('I my love your drug');
   await driver.wait(until.elementIsSelected(finishedLoading));
   // await delayCustom(testData[driverIndex].timeout);
-  console.log('AMPAK DRUGIC PA PRIDEMO VSI?');
   // await uuidValues.sendKeys(v4()); //'4d3399f5-2157-487c-86e4-66f7ad04f35d');
   // await firstInput.sendKeys('Found love in 1');
   // await secondInput.sendKeys('this hopeless place 2');
@@ -75,12 +69,9 @@ async function manipulateDriver(driver, driverIndex, shouldDestroy) {
   let startSimulation = await driver.findElement(By.id('startSimulation'));
   await startSimulation.click();
 
-
-  console.log('OLe we are somewhere');
   await driver.wait(until.elementIsSelected(simulationFinished));
   // let exportToBE = await driver.findElement(By.id('exportDatabaseToBE'));  
   // await exportToBE.click();
-  console.log('I will never let you down');
   return driver.sleep(5000).then(async () => {
     await driver.quit();
     return true;
@@ -99,7 +90,6 @@ suite(function (env) {
     // let seleniumGridURL = 'http://localhost:4444';
 
     before(async function () {
-      console.log('pictuers of laast night');
       // driver = await new Builder().forBrowser('chrome').build();
       // driver = await new Builder().usingServer(seleniumGridURL).forBrowser('chrome').build();
       for (let i = 0; i < numberOfClients; i++) {
@@ -107,14 +97,13 @@ suite(function (env) {
         // const cap = new Capabilities().setPageLoadStrategy('EAGER');
         // Capabilities
 
-        console.log('said they gonna stop');
+        console.log('each client iteration');
         // let driver_loc = await new Builder().usingServer(seleniumGridURL).forBrowser(Browser.CHROME).build();
         // let driver_loc = await new Builder().usingServer(seleniumGridURL).forBrowser(Browser.CHROME).build();
         let driver_loc = await new Builder().forBrowser('chrome').build();
         // await driver_loc.get(seleniumGridURL);
         drivers.push(driver_loc);
       }
-      console.log('do it all again');
       // driver = await new Builder().usingServer('http://192.168.100.53:4444').forBrowser('chrome').build(); -> uporabno ko imamo le en driver
     });
 
@@ -126,57 +115,10 @@ suite(function (env) {
         // await delayCustom(1000);
       }
 
-      console.log('I NEVER ?KNEW ANYBODY', JSON.stringify(mockData.agentsData));
-      console.log('CONVERTED  ', utilities.convertObjectToBase64String(mockData.agentsData[0]));
+      console.log('Finished with all iterations', JSON.stringify(mockData.agentsData));
     });
 
-    // it('First Selenium script', async function () {
-    //   await driver.get('http://localhost:4200/simulation');
-
-    //   let title = await driver.getTitle();
-    //   console.log('I promise');
-    //   // assert.equal("Web form", title);
-
-    //   let firstInput = await driver.findElement(By.id('firstInput'));
-    //   let secondInput = await driver.findElement(By.id('secondInput'));
-
-    //   let finishedLoading = await driver.findElement(By.id('loadingFinished'));
-    //   // let yes = await finishedLoading.isSelected();
-    //   // console.log('wwe  make it move   ', yes);
-    //   // await driver.wait(until.elementIsSelected(driver.findElement(By.id('loadingFinished'))));
-    //   console.log('we work hard');
-    //   await driver.wait(until.elementIsSelected(finishedLoading));
-    //   console.log('play hard!!!!');
-    //   await firstInput.sendKeys('Selenijum for last finish');
-    //   await secondInput.sendKeys('Selenijum for last finish - WORK HARD!!!!');
-
-    //   let startSeleniumCustomDataButton = await driver.findElement(By.id('seleniumCustomDataButton'));
-    //   // await firstInput.focusOut();
-
-
-    //   await startSeleniumCustomDataButton.click();
-
-
-    //   // driver.manage().timeouts().implicitlyWait(7, TimeUnit.SECONDS);
-    //   // await driver.manage().setTimeouts( { implicit: 10000 } );
-    //   // await driver.sleep(4000);
-    //   // await delayCustom(4000);
-    //   return driver.sleep(22000).then(async () => {
-    //     console.log('WE work hard play hard');
-    //     await driver.quit();
-    //     return true;
-    //   });
-
-    //   // let textBox = await driver.findElement(By.name('my-text'));
-    //   // let submitButton = await driver.findElement(By.css('button'));
-
-    //   // await textBox.sendKeys('Selenium');
-    //   // await submitButton.click();
-
-    //   // let message = await driver.findElement(By.id('message'));
-    //   // let value = await message.getText();
-    //   // assert.equal("Received!", value);
-    // });
+    
   });
   // }, { browsers: [Browser.CHROME, Browser.FIREFOX]});
 }, { browsers: [Browser.CHROME] });
