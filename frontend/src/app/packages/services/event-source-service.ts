@@ -36,7 +36,6 @@ export class EventSourceService {
         topics: string[], 
     ){
         this.consoleOutput = new CustomConsoleOutput('EventSourceService', CONSOLE_STYLE.sync_lib_main_positive_vibe);
-        this.consoleOutput.output('yes we started!');
         this.eventSourceStream = new Subject();
         this.eventSourceUrl = eventSourceUrl;
         this.topics = topics;
