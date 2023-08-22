@@ -73,7 +73,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       // this.simulationSteps = this.parseBase64ToSimulationSteps(param['dataAsBase64']);
       // this.simulationSteps = this.parseBase64ToSimulationSteps(param['dataAsBase64']);
       this.simulationSteps = this.simulation.steps;
-      this.consoleOutput.output(`Noise`, this.simulationSteps);
+      // this.consoleOutput.output(`Noise`, this.simulationSteps);
       this.syncLib = new SynchronizationLibrary(false, false, DEFAULT_MERCURE_SYNC_POLICY, this.simulation.agentId, false);
       await this.syncLib.finishSetup();
       this.basicInputForm.controls['loadingFinished'].setValue(true);
@@ -122,6 +122,15 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     }
     this.setSimulationFinished(true);
     this.basicInputForm.controls['simulationFinished'].setValue(true);
+  }
+
+  public async storeDataFromForm(useExistingId: boolean = false, recordId = '8b292617-ef08-4ce9-8e7b-161dddc92e5d') {
+    this.consoleOutput.output(recordId);
+    const formData = {
+      'firstInput':this.basicInputForm.controls['firstInput'].value,
+      'secondInput': this.basicInputForm.controls['secondInput'].value
+    };
+    const savedData = await this.syncLib.storeNewObject('testEntity', useExistingId ? recordId : uuidv4(), formData);
   }
 
   public async executeSingleStep(step: SimulationStep, index: number) {

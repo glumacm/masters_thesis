@@ -57,7 +57,19 @@
     </div>
 
     <div class="col-12">
-        <button id="startSimulation" (click)="startSimulation(false)" mat-raised-button color="primary">Poženi korake - rocno testiranje</button>
+        <button id="startSimulationManual" (click)="startSimulation(false)" mat-raised-button color="primary">Poženi korake - rocno testiranje</button>
+    </div>
+
+    <div class="col-12">
+        <button id="storeDataFromForm" (click)="storeDataFromForm(false)" mat-raised-button color="primary">Shrani podatke (nov UUID)</button>
+    </div>
+
+    <div class="col-12">
+        <button id="storeDataFromFormexistingId" (click)="storeDataFromForm(true)" mat-raised-button color="primary">Shrani podatke (v obstojec UUID: 8b292617-ef08-4ce9-8e7b-161dddc92e5d)</button>
+    </div>
+
+    <div class="col-12">
+        <button id="startBatchSync" (click)="startBatchSync()" mat-raised-button color="primary">Zacni sinhronizacijo</button>
     </div>
 
     <br/>
