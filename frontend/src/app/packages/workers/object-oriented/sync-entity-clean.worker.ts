@@ -457,10 +457,14 @@ export class SyncEntityClean {
                         }
 
                         // Ustvarimo Syncing entryje
-                        itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
+                        for (let syncItem of itemsToSyncAsArray) {
                             const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
                             await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
-                        });
+                        }
+                        // itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
+                        //     const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
+                        //     await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
+                        // });
 
                         // Nastavimo sync entryje na in_sync
                         await itemsToSync.modify((obj: SyncChamberRecordStructure) => obj.objectStatus = ChamberSyncObjectStatus.in_sync);
