@@ -347,7 +347,10 @@ export class SyncEntityClean {
             {
                 agentId: this.configuration.agentId, // Pricakujem da bo vedno ta vrednost prisotna!!!
                 data
-            }
+            },
+            // {
+            //     timeout: 20
+            // }
         );
     }
 
