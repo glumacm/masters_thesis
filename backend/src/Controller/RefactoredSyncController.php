@@ -233,6 +233,12 @@ class RefactoredSyncController extends AbstractController
         $request_model = $serializer->deserialize($request->getContent(), SyncBatchSingleEntityRequest::class, 'json');
         $syncDoctrineEventsListener->setAgentId($request_model->agent_id);
 
+        $sync_job = new SyncJob();
+        $sync_job->setJobUuid($request_model->request_uuid);
+        $sync_job->setEntityName($entity_name);
+        $sync_job_repository = $generic_service->findRepositoryFromString(SyncJob::class);
+        $sync_job_repository->save($sync_job, flush: true);
+
 
         $entity_name_reflection_class = $generic_service->get_class_from_string($entity_name);
 
@@ -279,6 +285,9 @@ class RefactoredSyncController extends AbstractController
                 $syncRecords[] = $data_to_return;
             }
         }
+
+        $sync_job->setStatus('finished');
+        $sync_job_repository->save($sync_job, flush: true);
 
         $data_to_return->sync_records = $syncRecords;
         $response->setContent($serializer->serialize($data_to_return, 'json'));
