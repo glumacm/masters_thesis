@@ -338,7 +338,7 @@ export class SyncEntityClean {
         );
     }
 
-    public async batch_single_entity_sync(entityName: string, data: any): Promise<any> {
+    public async batch_single_entity_sync(entityName: string, data: any, requestUuid?: string): Promise<any> {
         const entityNameFromConfiguration = (OBJECT_NAME_TO_PATH_MAPPER as any)[entityName];
         this.consoleOutput.output(`again: `, this.configuration.agentId);
         // return axios.post(
@@ -346,6 +346,7 @@ export class SyncEntityClean {
             encodeURI(`${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/${CONFIGURATION_CONSTANTS.BATCH_SINGLE_ENTITY_SYNC_PATH_NAME}/${entityNameFromConfiguration}`),
             {
                 agentId: this.configuration.agentId, // Pricakujem da bo vedno ta vrednost prisotna!!!
+                requestUuid: requestUuid,
                 data
             },
             // {
@@ -407,15 +408,26 @@ export class SyncEntityClean {
             const syncDB = await this.getSyncDB();
             const mapper = {} as any;
             const mapEntityToUuids = {} as any;
-            for (let syncTable of syncDB.tables)
-                for (let i = 0; i <= syncDB.tables.length; i++) {
-                    // za vsako tabelo poiscemo podatke
-                    const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
+            const mapEntityToRequestUuid = {} as any;
+            for (let syncTable of syncDB.tables){
+                mapEntityToRequestUuid[syncTable.name] = uuidv4()
+                // za vsako tabelo poiscemo podatke
+                const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
 
-                    if (tablePendingObjects && tablePendingObjects.length > 0) {
-                        mapper[syncTable.name] = tablePendingObjects;
-                        mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
-                    }
+                if (tablePendingObjects && tablePendingObjects.length > 0) {
+                    mapper[syncTable.name] = tablePendingObjects;
+                    mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
+                }
+            
+                // for (let i = 0; i <= syncDB.tables.length; i++) { //WTF??? zakaj dve iste foor zanke???
+                //     // za vsako tabelo poiscemo podatke
+                //     const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
+
+                //     if (tablePendingObjects && tablePendingObjects.length > 0) {
+                //         mapper[syncTable.name] = tablePendingObjects;
+                //         mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
+                //     }
+                // }
                 }
 
             for (let property of Object.keys(mapper)) {
@@ -474,7 +486,7 @@ export class SyncEntityClean {
                             newData['uuid'] = data.localUUID;
                             newData['lastModified'] = data.lastModified;
                             return newData;
-                        })).then(
+                        }), mapEntityToRequestUuid[property]).then(
                             (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids),
                             (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids),
                         );

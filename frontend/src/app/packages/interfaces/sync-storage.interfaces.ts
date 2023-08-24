@@ -4,6 +4,7 @@ export enum ChamberSyncObjectStatus {
   pending_sync = 'pending_sync',
   synced = 'synced',
   conflicted = 'conflicted',
+  pending_retry = 'pending_retry',
 }
 
 export interface SyncChamberRecordStructure {
@@ -12,6 +13,7 @@ export interface SyncChamberRecordStructure {
   objectStatus: ChamberSyncObjectStatus | undefined | string,
   localUUID: string,
   lastModified?: Date | null | undefined,
+  lastRequestUuid?: string | null | undefined, // S tem bom vedel kateri UUID requesta se je poslal ob zadnjem poskusu synca.
   // objectStatus: syncChamberrecordObjectStatus
 }
 
