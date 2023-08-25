@@ -430,7 +430,7 @@ export class SynchronizationLibrary {
      * @param objectData Object data (NOT automerge.doc) !!!
      * @returns 
      */
-    async storeNewObject(entityName: string, objectUuid: string, objectData: any): Promise<SyncChamberRecordStructure> {
+    async storeNewObject(entityName: string, objectUuid: string, objectData: any): Promise<SyncChamberRecordStructure | null | undefined> {
         /**
          * Kratek opis:
          * Funkcija mora na podlagi podanega objekta in UUID-ja, popraviti objekt v bazi glede na UUID.
@@ -443,13 +443,21 @@ export class SynchronizationLibrary {
 
         //USE-CASE za CONFLICT
         const retrievedConflictDB = await this.getConflictDB();
+        const retrievedSyncDB: AppDB = await this.getSyncDB();
         const existingConflictEntry = retrievedConflictDB.tableExists(entityName) ? (await retrievedConflictDB.table(entityName).get(objectUuid)) : undefined;
+
+        // const retrievedSyncDB: AppDB = await this.getSyncDB()
+        if (!retrievedSyncDB.tableExists(entityName)) {
+            // create table for entity
+            this.dbSync = await (retrievedSyncDB).changeSchemaInstance(retrievedSyncDB, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME] }, retrievedSyncDB.verno / 10)
+        }
 
         if (existingConflictEntry) {
             // IMAMO PODATEK ZE V CONFLICTU in v tem primeru ne pustimo nadaljnega shranjevanja
             // SyncLibraryNotification
             SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, { createdAt: new Date(), type: SyncLibraryNotificationEnum.ALREADY_CONFLICTED, message: `Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.` }));
-            throw new ObjectAlreadyConflictedError(`Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.`);
+            return null;  // 
+            // throw new ObjectAlreadyConflictedError(`Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.`);
         }
 
         // USE-CASE ZA TEMP
@@ -467,7 +475,9 @@ export class SynchronizationLibrary {
             (await retrievedTempDB.table(entityName)).put(dataToInsert, objectUuid);
             const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: 'Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible (overwritten temp data).' };
             SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, newEvent));
-            throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible (overwritten temp data).`);
+            return dataToInsert;
+            // removed raising error since we will from now on send only notificaitons and no errors - except where we catch that error in order to send a notification
+            // throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible (overwritten temp data).`);
         }
 
         // Kaksna je razlika med tem, da ugotoivm, da moram nastaviti TEMP preko syncing in pre-existing TEMP?
@@ -480,23 +490,31 @@ export class SynchronizationLibrary {
                 // existingEntry.status === SyncingObjectStatus.in_sync ||
                 // existingEntry.status === SyncingObjectStatus.pending_retry
                 existingEntry.objectStatus === ChamberSyncObjectStatus.in_sync ||
-                existingEntry.objectStatus === ChamberSyncObjectStatus.conflicted
+                existingEntry.objectStatus === ChamberSyncObjectStatus.conflicted ||
+                existingEntry.objectStatus === ChamberSyncObjectStatus.pending_retry  // this should cover use-case when we need to save data but cannot do it in SYNC_DB because of network or timeout error
             )
         ) {
+            let useCaseMessage = `Data stored to TEMP because related object has status: ${existingEntry.objectStatus}`;
+            let useCaseType = SyncLibraryNotificationEnum.SYNC_IN_PROGRESS;
+
+            if (existingEntry.objectStatus === ChamberSyncObjectStatus.conflicted) {
+                useCaseType = SyncLibraryNotificationEnum.CONFLICT;
+            } else if (existingEntry.objectStatus === ChamberSyncObjectStatus.pending_retry) {
+                useCaseType = SyncLibraryNotificationEnum.ITEM_IS_PENDING_RETRY;
+            }
             const dataFromSync = cloneDeep(existingEntry) as SyncChamberRecordStructure;
             const dataToInsert = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, dataFromSync);
             //Priden to je pravilna uporaba
             this.dbSyncTemp = await (await this.getTempDB()).addEntryToTable(entityName, objectUuid, dataToInsert, (await this.getTempDB()).verno / 10, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME] });
-            const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: 'Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.' };
+            const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: `${useCaseMessage}: ${useCaseType}` };
+            // const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: 'Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.' };
+            // SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, newEvent));
             SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, newEvent));
-            throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.`);
+            return dataToInsert;
+            // throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.`);
         }
 
-        const retrievedSyncDB: AppDB = await this.getSyncDB()
-        if (!retrievedSyncDB.tableExists(entityName)) {
-            // create table for entity
-            this.dbSync = await (retrievedSyncDB).changeSchemaInstance(retrievedSyncDB, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME] }, retrievedSyncDB.verno / 10)
-        }
+        // Removed check and initialise entityName table and added to top of function
 
         // V tem trenutku imamo sigurno tabelo `entityName` v syncDB
         const preExisting: SyncEntryI | undefined = await (await this.getSyncDB()).table(entityName).get(objectUuid);
@@ -515,6 +533,7 @@ export class SynchronizationLibrary {
             ) as SyncChamberRecordStructure;
         }
         (await this.getSyncDB()).table(entityName).put(dataToReturn, objectUuid);
+        SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification,{createdAt: new Date(), message: `Successfully saved item: ${objectUuid} to sync library`, type: SyncLibraryNotificationEnum.STORED_TO_SYNC} as SyncLibraryNotification));
         return dataToReturn;
     }
 
