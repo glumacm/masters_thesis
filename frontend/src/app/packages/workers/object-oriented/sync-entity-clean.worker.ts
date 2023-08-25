@@ -392,6 +392,7 @@ export class SyncEntityClean {
         });
         return;
     }
+
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
         this.consoleOutput.output(`Starting BATCH SYNC`);
         let initialTimer = 200;
@@ -781,6 +782,14 @@ export class SyncEntityClean {
                 obj.objectStatus = ChamberSyncObjectStatus.conflicted
             }
         ); // V tem primeru mora v sync bazi obstajati <collectionName> tabela, ker drugace ne bi uspeli izvesti sync procesa.
+        // mislim, da bi bilo potrebno poslati obvestilo, da je prislo doo konflikta
+        await this.timeoutFunc(
+            {
+                message: `Neuspešna sinhronizacija - objekt: ${objectUuid} ima konflikt s podatki zalednedga sistema. `,
+                type: SyncLibraryNotificationEnum.CONFLICT
+            } as SyncLibraryNotification,
+            10
+        );
     }
 
     async syncStatusWithErrorsLogicCustomAutoMerge(objectUuid: string, collectionName: string, status: SyncLibraryNotificationEnum): Promise<any> {
@@ -1004,14 +1013,23 @@ export class SyncEntityClean {
             this.syncingDB!.table(entityName).where({ 'objectUuid': objectUuid }).delete(); // Vedno je lahko le en entry za isti UUID, zato ne rabimo dodatnega filtriranja
             // Potrebno je vrniti SYNC podatek v 'pending_sync' stanje.
             // await delay(5000);
-            await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => { obj.objectStatus = ChamberSyncObjectStatus.pending_sync });
+            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: `Network error occured while processing item.`} as SyncLibraryNotification), 10);
+            return;
+            // TO je osnutek kaj bi moralo vrniti.
+            //await this.timeoutFunc({type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: 'Predolga zahteva (timeout)'} as SyncLibraryNotification, 10);
 
         } else if (error.code === SynchronizationSyncStatus.ECONNABORTED) {
+            // To je use-case ko se zgodi timeout
             // start retry process -> in this case retry process == repeat check if request was executed after configured time
             const valueFromSyncingDB = await this.syncingDB?.table(entityName).where({ 'objectUuid': objectUuid }).filter((item: SyncingEntryI) => item.retries < 10)?.modify((item: SyncingEntryI) => item.status = SyncingObjectStatus.pending_retry);  // THIS SHOULD EXIST - since we do not proceed to send to BE without creating data in syncingDB
+            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`} as SyncLibraryNotification), 10);
         } else if (error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) {
+            // TUkaj bi rekel, da se mora samo poslati obvestilo. Objekt bi nastavil nazaj v "pending_sync" - ker to je napaka BEja in tako bi lahko resili
+            // zagato, da se bo scasoma popravil problem.
             this.consoleOutput.output(`ERR_BAD_RESPONSE - TODO , missing implementation`);
-            throw new Error('SYNC-entity-worker -> ERR_BAD_RESPONSE TODO implementation');
+            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.UNKNOWN_ERROR, message: `Unrecognised error from BE.`} as SyncLibraryNotification), 10);
+            return;
+            // throw new Error('SYNC-entity-worker -> ERR_BAD_RESPONSE TODO implementation');
         }
     }
     /*************************************************************************/
