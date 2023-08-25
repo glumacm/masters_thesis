@@ -407,7 +407,17 @@ class MergeService
                         $merge_resolution->merged        = $be_object_array;
                         return $merge_resolution;
                     case MergeResolutionEnum::NEWER_CHANGES:
+//                        if ($be_last_modified < $fe_last_modified) {
+//                            $be_object_array[$changed_field] = $changed_value;
+//                        }
+//                        $merge_resolution->merged = $be_object_array;
+//                        return $merge_resolution;
+//                        break;
                     case MergeResolutionEnum::OLDER_CHANGES:
+//                        if ($be_last_modified > $fe_last_modified) {
+//                            $be_object_array[$changed_field] = $changed_value;
+//                        }
+//                        $merge_resolution->merged = $be_object_array;
                         # Add new change without questions -> NO_RESTRICTIONS
                         # If changed_field does not yet exist on be_object_array, then it will be added (but be careful - if this property is not defind on CLASS , then this will break!)
 
