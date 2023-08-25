@@ -630,7 +630,7 @@ export class SynchronizationLibrary {
                 createdAt: new Date(),
                 message: `Could not find conflicts table in #resolveConflict function for uuid: ${objectUuid} and entityName: ${entityName}`,
             } as SyncLibraryNotification
-            SynchronizationLibrary.eventsSubject.next(event);
+            SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, event));
             return false;
         }
         if (await this.hasConflicts(objectUuid, entityName)) {
@@ -653,7 +653,7 @@ export class SynchronizationLibrary {
                     createdAt: new Date(),
                     message: `Could not find conflict in #resolveConflict function for uuid: ${objectUuid} and entityName: ${entityName} and conflictId: ${conflictId}`,
                 } as SyncLibraryNotification
-                SynchronizationLibrary.eventsSubject.next(event);
+                SynchronizationLibrary.eventsSubject.next(plainToInstance(SyncLibraryNotification, event));
                 return false;
             }
             patchedData = this.syncLibAutoMerge.applyConflictPatch(conflict, beData, syncLocalData, useRemote);
@@ -670,10 +670,13 @@ export class SynchronizationLibrary {
             if (conflictChamberRemoved) {
 
                 SynchronizationLibrary.eventsSubject.next(
+                    plainToInstance(
+                        SyncLibraryNotification, 
                     {
                         type: SyncLibraryNotificationEnum.CONFLICT_RESOLVED,
                         message: `Conflicts for object: ${objectUuid} in entity: ${entityName} was resolved!`
                     } as SyncLibraryNotification
+                    )
                 );
             }
             return conflictChamberRemoved;
