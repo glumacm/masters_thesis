@@ -386,6 +386,12 @@ export class SyncEntityClean {
         
     }
 
+    async timeoutFunc(event: any, timer: number): Promise<void> {
+        setTimeout(async()=> {
+            await this.sendNewEventNotification(event);
+        });
+        return;
+    }
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
         this.consoleOutput.output(`Starting BATCH SYNC`);
         let initialTimer = 200;
