@@ -470,7 +470,9 @@ export class SyncEntityClean {
 
                         // Ustvarimo Syncing entryje
                         for (let syncItem of itemsToSyncAsArray) {
-                            const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
+                            // property === is supposed to be sync table(entity) name
+                            const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, mapEntityToRequestUuid[property], 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
+                            // const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
                             await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
                         }
                         // itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
@@ -479,7 +481,10 @@ export class SyncEntityClean {
                         // });
 
                         // Nastavimo sync entryje na in_sync
-                        await itemsToSync.modify((obj: SyncChamberRecordStructure) => obj.objectStatus = ChamberSyncObjectStatus.in_sync);
+                        await itemsToSync.modify((obj: SyncChamberRecordStructure) => {
+                            obj.objectStatus = ChamberSyncObjectStatus.in_sync;
+                            obj.lastRequestUuid = mapEntityToRequestUuid[property];
+                        });
 
                         const beResult = await this.batch_single_entity_sync(property, mapper[property].map((data: SyncChamberRecordStructure) => {
                             const newData = data.record;
@@ -487,8 +492,8 @@ export class SyncEntityClean {
                             newData['lastModified'] = data.lastModified;
                             return newData;
                         }), mapEntityToRequestUuid[property]).then(
-                            (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids),
-                            (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids),
+                            (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids, mapEntityToRequestUuid[property]),
+                            (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids, mapEntityToRequestUuid[property]),
                         );
                     } catch (exception) {
                         // TODO: po vsej verjetnosti ce pride ddo kaksne napake ki je nise mpredpostavil
@@ -529,18 +534,20 @@ export class SyncEntityClean {
         return;
     }
 
-    async processBatchSingleEntityErrorLogic(entityName: string, error: any, uuidsToSync: any[], errorType = SyncBatchSingleEntityStatusEnum.FATAL_ERROR): Promise<void> {
+    async processBatchSingleEntityErrorLogic(entityName: string, error: any, uuidsToSync: any[], requestUuid: string, errorType = SyncBatchSingleEntityStatusEnum.FATAL_ERROR): Promise<void> {
         this.consoleOutput.output(`#processBatchSingleEntityErrorLogic process`, error); //TODO: Odstraniti ta log, ko bo potrjeno, da logika dela
         for (let uuid of uuidsToSync) {
-            await this.singleSyncProcessError(error, entityName, uuid, uuid);
+            await this.singleSyncProcessError(error, entityName, uuid, requestUuid);
         }
 
-        await this.sendNewEventNotification(
-            {
-              type: SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM,
-              message: 'Poskusimo ponovno pognati',
-            } as SyncLibraryNotification
-        );
+        // ta napaka nima smisla, ker ne moremo vedeti, ali je res prislo do concurrency problema!
+        // Znotraj singleSyncProcessErrorja, lahko posljem obvestilo!
+        // await this.sendNewEventNotification(
+        //     {
+        //       type: SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM,
+        //       message: 'Poskusimo ponovno pognati',
+        //     } as SyncLibraryNotification
+        // );
         return;
 
     }
@@ -551,7 +558,7 @@ export class SyncEntityClean {
      * @param entityName 
      * @param data 
      */
-    async processBatchSingleEntitySuccessLogic(entityName: string, data: SyncBatchSingleEntityResponse | undefined, uuidsToSync: any[]): Promise<void> {
+    async processBatchSingleEntitySuccessLogic(entityName: string, data: SyncBatchSingleEntityResponse | undefined, uuidsToSync: any[], requestUuid: string): Promise<void> {
         if (!data) {
             await this.sendNewEventNotification(
                 {
@@ -583,7 +590,7 @@ export class SyncEntityClean {
                 break;
             
             case SyncBatchSingleEntityStatusEnum.CONCURRENCY_PROBLEM:
-                await this.processBatchSingleEntityErrorLogic(entityName, {}, uuidsToSync);
+                await this.processBatchSingleEntityErrorLogic(entityName, {}, uuidsToSync, requestUuid);
                 break;
             case SyncBatchSingleEntityStatusEnum.FATAL_ERROR:
             default:
