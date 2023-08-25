@@ -2,7 +2,7 @@
  * Starting point for Synchronization library
  */
 
-import { Observable, Subject, Subscription, filter } from "rxjs";
+import { Observable, Subject, Subscription, filter, tap } from "rxjs";
 import { ALLOW_MERCURE_PUSH_SERVICE_SYNC, CONFIGURATION_CONSTANTS, DATABASE_TABLES_MAPPER, DATABASE_TABLES_SCHEMA_MAPPER, DEFAULT_MERCURE_SYNC_POLICY } from "./configuration";
 import { SynchronizationSyncStatus } from "./enums/sync-process.enum";
 import { NetworkStatusEnum } from "./interfaces/network-status.interfaces";
@@ -250,7 +250,11 @@ export class SynchronizationLibrary {
             );
 
             await this.syncEntityInstance!.initDatabases();
-            SynchronizationLibrary.eventsSubject.pipe(filter(event => event.type === SyncLibraryNotificationEnum.DATABASE_CHANGE)).subscribe(
+            SynchronizationLibrary.eventsSubject.pipe(
+                tap((event: SyncLibraryNotification) => {
+                    this.consoleOutput.output(`LIBRARY EVENT   : `, event);
+                }),
+                filter(event => event.type === SyncLibraryNotificationEnum.DATABASE_CHANGE)).subscribe(
                 {
                     next: async (value) => {
                         // await this.notifyMainAboutDBChange(value.data.dbName, value.data.version);
@@ -672,10 +676,10 @@ export class SynchronizationLibrary {
                 SynchronizationLibrary.eventsSubject.next(
                     plainToInstance(
                         SyncLibraryNotification, 
-                    {
-                        type: SyncLibraryNotificationEnum.CONFLICT_RESOLVED,
-                        message: `Conflicts for object: ${objectUuid} in entity: ${entityName} was resolved!`
-                    } as SyncLibraryNotification
+                        {
+                            type: SyncLibraryNotificationEnum.CONFLICT_RESOLVED,
+                            message: `Conflicts for object: ${objectUuid} in entity: ${entityName} was resolved!`
+                        } as SyncLibraryNotification
                     )
                 );
             }
