@@ -34,7 +34,7 @@ export const CONFIGURATION_CONSTANTS = {
         'TestEntity': 'testEntity',
         'TheTest': 'theTtest',
     } as any,
-    ALLOW_AUTOMATIC_SYNC: true,
+    ALLOW_INTERVAL_SYNC: false, // true,
     AUTOMATIC_SYNC_INTERVAL: 7500, // in miliseconds
     DEBUG_MODE: true, // boolean
 }

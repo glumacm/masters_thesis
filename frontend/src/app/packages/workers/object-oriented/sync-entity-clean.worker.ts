@@ -372,7 +372,7 @@ export class SyncEntityClean {
         if (this.automaticSyncInterval) {
             clearInterval(this.automaticSyncInterval);
         }
-        if (CONFIGURATION_CONSTANTS.ALLOW_AUTOMATIC_SYNC) {
+        if (CONFIGURATION_CONSTANTS.ALLOW_INTERVAL_SYNC) {
             this.automaticSyncInterval = setInterval(async () => {
                 if (this.syncInProgress) {
                     this.consoleOutput.output(`Cannot start sync - sync already in progress`);
