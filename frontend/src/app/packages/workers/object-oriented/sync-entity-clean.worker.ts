@@ -435,7 +435,7 @@ export class SyncEntityClean {
                 //         mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
                 //     }
                 // }
-                }
+            }
 
             for (let property of Object.keys(mapper)) {
                 // Poslji na zahtevo na BE!!
@@ -1001,7 +1001,7 @@ export class SyncEntityClean {
         // await delay(10000);
 
         // SPODNJI SCENARIJ, je malce dvoumen... Ce bomo imeli ze obstojec retry proces. Ima smisel, da ga pustimo in ga ne brisemo... NE- obstojec retry ne more obstajati, ker do tukaj ne uspelo priti.
-        if (error.code === HttpErrorResponseEnum.ERR_NETWORK) {
+        if (error.code === HttpErrorResponseEnum.ERR_NETWORK) { // To je med drugim tudi napaka za nepricakovano prekinjeno povezavo med FE in BE!
             // remove entry from syncing
             // USE-CASE(ERR_NETWORK), ko nimamo dostopa do serverja DELUJE (in perfect scenario)
             // USE-CASE(ERR_BAD_RESPONSE), ko server vrne error -> torej da se izvede neka logika, ampak ker nismo ujeli te napake na BE, da response vrne kot error DELUJE (in perfect scenario)
@@ -1013,6 +1013,16 @@ export class SyncEntityClean {
             this.syncingDB!.table(entityName).where({ 'objectUuid': objectUuid }).delete(); // Vedno je lahko le en entry za isti UUID, zato ne rabimo dodatnega filtriranja
             // Potrebno je vrniti SYNC podatek v 'pending_sync' stanje.
             // await delay(5000);
+            /**
+             * USE-CASE: Poslal bom podatke, na BE se shranijo, ampak ker je prislo do prekinjene povezave, se bo na BE shranil podatek posledicno
+             * se bo popravil tudi LASTMODIFIED!!!!
+             */
+            // commented out below line on 25th of August -> swithing to real retry logic
+            // await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => { obj.objectStatus = ChamberSyncObjectStatus.pending_sync });
+            await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
+                obj.objectStatus = ChamberSyncObjectStatus.pending_retry;
+                obj.lastRequestUuid = requestUuid;
+            });
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: `Network error occured while processing item.`} as SyncLibraryNotification), 10);
             return;
             // TO je osnutek kaj bi moralo vrniti.
