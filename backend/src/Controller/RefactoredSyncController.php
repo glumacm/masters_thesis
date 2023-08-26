@@ -256,6 +256,7 @@ class RefactoredSyncController extends AbstractController
         $sync_job = new SyncJob();
         $sync_job->setJobUuid($request_model->request_uuid);
         $sync_job->setEntityName($entity_name);
+        $sync_job->setStatus(SyncRequestStatusEnum::IN_PROGRESS->name);
         $sync_job_repository = $generic_service->findRepositoryFromString(SyncJob::class);
         $sync_job_repository->save($sync_job, flush: true);
 
@@ -306,7 +307,7 @@ class RefactoredSyncController extends AbstractController
             }
         }
 
-        $sync_job->setStatus('finished');
+        $sync_job->setStatus(SyncRequestStatusEnum::FINISHED->name);
         $sync_job_repository->save($sync_job, flush: true);
 
         $data_to_return->sync_records = $syncRecords;
