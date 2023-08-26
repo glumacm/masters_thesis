@@ -97,6 +97,22 @@ class RefactoredSyncController extends AbstractController
         return new JsonResponse(['success' => 'HasTheSameAnswer']);
     }
 
+
+    #[Route('api/refactored/initiate_sync_job_state_for_retry_testing', name:'initiate_sync_job_state_for_retry_testing', methods: ['GET'])]
+    public function initial_sync_job_state_for_retry_testing(
+        Request $request,
+        Connection $connection,
+        string $projectDir,
+    )
+    {
+        $sqlFile = sprintf('%s/public/%s', $projectDir, 'sync_job_initial_state_retry_testing.sql');
+
+        $queries = file_get_contents($sqlFile);
+
+        $connection->executeStatement($queries);
+        return new JsonResponse(['success' => 'SyncJobTestingDataIsInitiated']);
+    }
+
     #[Route('api/refactored/fake_update/{newId}/{agentId<\d+>?1}', name: 'fake_update', methods: ['GET'])]
     public function tt(
         Request $request,
