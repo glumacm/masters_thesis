@@ -167,7 +167,7 @@ class MergeService
 //        $this->logger->warning($this->serializer->serialize(),'json'));
     }
 
-    public function get_serializer(bool $include_get_set_method_normalizer = false): Serializer
+    public function get_serializer(bool $include_get_set_method_normalizer = false, $format = \DateTime::ATOM): Serializer
     {
         $phpDocExtractor = new PropertyInfo\Extractor\PhpDocExtractor();
         $typeExtractor   = new PropertyInfo\PropertyInfoExtractor(
@@ -175,7 +175,7 @@ class MergeService
         );
 
 //        $format          = 'Y-m-d H:i:s';
-        $format          = \DateTime::ATOM;
+//        $format          = \DateTime::ATOM;
         $defaultContext  = [
             DateTimeNormalizer::FORMAT_KEY => $format
         ];

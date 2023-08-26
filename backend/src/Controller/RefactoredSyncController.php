@@ -7,10 +7,14 @@ use App\Entity\TestEntity;
 use App\Entity\TheTest;
 use App\Enum\SyncBatchSingleEntityStatusEnum;
 use App\Enum\SyncEntityStatusEnum;
+use App\Enum\SyncRequestStatusEnum;
 use App\EventListener\SyncDoctrineEventsListener;
 use App\Models\SyncBatchSingleEntityRequest;
 use App\Models\SyncBatchSingleEntityResponse;
 use App\Models\SyncEntityResponse;
+use App\Models\SyncRequestStatus;
+use App\Models\SyncRequestStatusRequest;
+use App\Models\SyncRequestStatusResponse;
 use App\Repository\SyncJobRepository;
 use App\Repository\TestEntityRepository;
 use App\Service\ApiNameConverter;
@@ -414,6 +418,75 @@ class RefactoredSyncController extends AbstractController
         $response->setContent($serializer->serialize($data_to_return, 'json'));
         return $response;
 
+    }
+
+    #[Route('api/refactored/sync_requests_status', name: 'check_sync_jobs_finished', methods: ['POST'])]
+    public function sync_requests_status(
+        Request $request,
+        GenericService $generic_service,
+        LoggerInterface $logger,
+        MergeService $merge_service,
+    ): Response {
+        $response = new Response();
+
+        $response->headers->set('Content-Type', 'application/json');
+        $data_to_return = new SyncRequestStatusResponse();
+        $serializer = $merge_service->get_serializer(format: 'Y-m-d H:i:s');
+        /**
+         * @var SyncRequestStatusRequest $request_data
+         */
+        $request_data = $serializer->deserialize(
+            ($request->getContent()),
+            SyncRequestStatusRequest::class,
+            'json'
+        );
+        $entity_name = $request_data->entity_name;
+
+
+
+        // If reflection variable is null -> entity does not exist on BE!
+        $entity_name_reflection_class = $generic_service->get_class_from_string($entity_name);
+
+        if ($entity_name_reflection_class == null) {
+            \Sentry\captureMessage('Entity  ' . $entity_name . ' does not exist');
+            # TODO: Vrniti je potrbno napako v sklopu responsea in SyncEntityResponse objekta!
+            return new JsonResponse(data: json_encode('Entity does not exist!'));
+        }
+
+        $valid_parameters = $request_data->list_of_uuids;
+        $sync_repository = $generic_service->findRepositoryFromString(SyncJob::class);
+        $list_of_request_statuses = array();
+        if ($valid_parameters) {
+            foreach ($request_data->list_of_uuids as $request_uuid ) {
+                $request_status = new SyncRequestStatus();
+                $request_status->entity_name = $entity_name;
+                $request_status->created_at = new \DateTime();
+                $request_status->uuid = $request_uuid;
+                /**
+                 * @var SyncJob|null $found_item
+                 */
+                $found_item = $sync_repository->findOneBy(
+                    [
+                        'job_uuid' => $request_uuid,
+                        'entity_name' => $entity_name
+                    ]
+                );
+                if (!$found_item) {
+                    $request_status->status = SyncRequestStatusEnum::FINISHED->name;
+                } else {
+
+                    $request_status->status = SyncRequestStatusEnum::fromName($found_item->getStatus())->name;
+                }
+                $list_of_request_statuses[] = $request_status;
+            }
+        }
+
+        $data_to_return->created_at = new \DateTime();
+        $data_to_return->entity_name = $entity_name;
+        $data_to_return->list_of_requests_statuses = $list_of_request_statuses;
+
+        $response->setContent($serializer->serialize($data_to_return, 'json'));
+        return $response;
     }
 
     #[Route('api/sync-entity56', name: 'sync_entity', methods: ['POST'])]
