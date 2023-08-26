@@ -205,13 +205,19 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         // convert both to Comlink style!!
 
         const RetryManagementClass = Comlink.wrap<typeof RetryManagement>(new Worker(new URL('./workers/object-oriented/retry-management', import.meta.url)));
-        this.retryMangementInstance = await new RetryManagementClass();
+        this.retryMangementInstance = await new RetryManagementClass(
+            Comlink.proxy({
+                sendNewEventNotification: this.sendNewEventNotification,
+            }),
+        );
         await this.retryMangementInstance.finishInit()
         const miliseconds = 1000;
         const timeInSeconds = 25;
         const timeInMinutes = 0
         const sum = (miliseconds*60*timeInMinutes) + (miliseconds*timeInSeconds);
-        await this.retryMangementInstance.initiateEvaluationInterval(1120);
+        if (CONFIGURATION_CONSTANTS.ALLOW_RETRY_PROCESS) {
+            await this.retryMangementInstance.initiateEvaluationInterval(1120);
+        }
         // await this.retryMangementInstance.initiateEvaluationInterval(600);
 
         // this.retryMangementInstance.addNewEntry('object_name128', {requestUuid:'haha3', status: 'in-progress', retries: 100, createdDatetime: new Date() });

@@ -1,11 +1,11 @@
 import axios from "axios";
 import * as Comlink from 'comlink';
-import { of } from "rxjs";
-import {v4 as uuidv4} from 'uuid';
+
 import { CONFIGURATION_CONSTANTS, SYNC_LIB_BE_ENDPOINTS } from "../configuration";
 import { SynchronizationSyncEntityPostData, SynchronizationSyncEntityRecord } from "../interfaces/sync-process.interfaces";
-import { console_log_with_style, CONSOLE_STYLE, CustomConsoleOutput } from "../utilities/console-style";
+import { CONSOLE_STYLE, CustomConsoleOutput } from "../utilities/console-style";
 import { RetryEntryI, SyncingEntryI } from "../workers/retry/utilities";
+import { SyncRequestStatusRequest } from "../models/sync/sync-request-status-request.model";
 
 
 /*
@@ -80,6 +80,14 @@ export abstract class SayItAintSo {
   static readonly fooFunction = ()=> {
     return 'Example 2';
   }
+}
+
+
+export function requestStatusCheck(entityName: string, data: SyncRequestStatusRequest) {
+  return axios.post(
+    `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/${CONFIGURATION_CONSTANTS.SYNC_REQUEST_STATUS_PATH_NAME}`,
+    data,
+  )
 }
 
 export {ExampleClassForComlinkProxy}

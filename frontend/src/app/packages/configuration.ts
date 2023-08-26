@@ -9,6 +9,7 @@ export const CONFIGURATION_CONSTANTS = {
     // SYNC_ENTITY_PATH_NAME: 'sync-entity',
     SYNC_ENTITY_PATH_NAME: 'refactored/sync-merging',  //@remarks ime api-ja je misleading. Ta API je namenjen za sync. Torej, posljemo podatke, se zmergajo na BE in vrnemo nek odgovor nazaj.
     BATCH_SINGLE_ENTITY_SYNC_PATH_NAME: 'refactored/batch-single-entity-sync-merging',  //@remarks ime api-ja je misleading. Ta API je namenjen za sync. Torej, posljemo podatke, se zmergajo na BE in vrnemo nek odgovor nazaj.
+    SYNC_REQUEST_STATUS_PATH_NAME: 'refactored/sync_requests_status',
     BROWSER_SYNC_DATABASE_NAME: 'sync',
     BROWSER_SYNCING_DATABASE_NAME: 'syncing',
     BROWSER_SYNC_CONFLICT_DATABASE_NAME: 'sync_conflict',
@@ -37,6 +38,7 @@ export const CONFIGURATION_CONSTANTS = {
     ALLOW_INTERVAL_SYNC: false, // true,
     AUTOMATIC_SYNC_INTERVAL: 7500, // in miliseconds
     DEBUG_MODE: true, // boolean
+    ALLOW_RETRY_PROCESS: true,
 }
 
 

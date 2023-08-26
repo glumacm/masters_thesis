@@ -16,6 +16,7 @@ import * as download from 'downloadjs';
 import { ApiService } from '../services/api-service';
 import { BehaviorSubject, Subscription, first } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
+import syncTestEntityBackup from '../packages/mock-data/26-08-2023/sync_testEntity_backup';
 
 
 @Component({
@@ -298,6 +299,24 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       console.error('' + error);
     }
     db.close();
+  }
+
+  public async importTestEntitySyncDatabase() {
+    let dbSync;
+    // import test data
+    
+    if (await Dexie.exists(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME)) {
+      await AppDB.delete(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
+    }
+    try {
+      dbSync = new AppDB('sync');
+      dbSync.version(1).stores({ 'testEntity': DATABASE_TABLES_SCHEMA_MAPPER['sync'] });
+      syncTestEntityBackup
+      const fileFromJSON = new Blob([JSON.stringify(syncTestEntityBackup)],{type:'application/json'});
+      await dbSync.import(fileFromJSON);
+      await dbSync.finishSetup();
+      dbSync.close();
+    } finally {}
   }
 
   public async importDatabase() {
