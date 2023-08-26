@@ -18,6 +18,7 @@ import { SyncLibraryNotification } from '../../models/event/sync-library-notific
 import { SyncLibraryNotificationEnum } from '../../enums/event/sync-library-notification-type.enum';
 import { pathToSimpleNameMapper } from '../../utilities/config-utilities';
 import { SyncRequestStatusEnum } from '../../enums/sync/sync-request-status.enum';
+import { SyncLibAutoMerge } from '../../services/automerge-service';
 
 export class RetryManagement {
     private debug_prefix = 'RetryManagement'
@@ -25,9 +26,11 @@ export class RetryManagement {
     private retryDB: AppDB | undefined;
     private syncingDB: AppDB | undefined;
     private syncDB: AppDB | undefined;
+    private tempDB: AppDB | undefined;
     private evaluationInterval: any;
     private consoleOutput: CustomConsoleOutput;
     private sendNewEventNotification: any;
+    private syncLibAutoMerge: SyncLibAutoMerge;
 
     private isEvaluationRunning: boolean = false;
 
@@ -39,6 +42,7 @@ export class RetryManagement {
     ) {
         this.consoleOutput = new CustomConsoleOutput('RetryManagement', CONSOLE_STYLE.sync_lib_retry_management);
         this.consoleOutput.closeGroup()
+        this.syncLibAutoMerge = new SyncLibAutoMerge();
         this.setDependencies(externalDependencies);
         // this.finishInit();
 
@@ -118,24 +122,45 @@ export class RetryManagement {
 
         const itemsExist = responseData?.listOfRequestsStatuses?.length > 0;
         const syncTable = await this.getSyncDB();
+        const tempTable: AppDB = await this.getTempDB();
+        const convertedEntityName = ((pathToSimpleNameMapper(OBJECT_NAME_TO_PATH_MAPPER) as any)[responseData.entityName]);
+
+        if (!syncTable.tableExists(convertedEntityName)) {
+            await this.sendNewEventNotification(
+                plainToInstance(SyncLibraryNotification, {
+                    createdAt: new Date(),
+                    type: SyncLibraryNotificationEnum.ENTITY_TABLE_DOES_NOT_EXIST,
+                    message: 'Tabela ne obstaja za retry primer - zahteva se ne bi smela zgodit.',
+                })
+            );
+            return;
+        }
+        
+        /**
+         * VELIK TODO 1:
+         * Potrebno bo dodati kodo in upati, da bo delovalo brez tezkih problemov, ki bo omogocila, da
+         * se podatkovna baza posodobi, ko dobi obvestilo, da je prislo do spremembe.
+         */
         for (let item of responseData.listOfRequestsStatuses) {
-            const convertedEntityName = ((pathToSimpleNameMapper(OBJECT_NAME_TO_PATH_MAPPER) as any)[responseData.entityName]);
-            const talkToMe = await syncTable.table(convertedEntityName).get(item.uuid);
+            // OPOZORILO: Nujno moramo preveriti ali temp tabela obstaja preden preverimo za TEMP podatek
+            const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(item.uuid) : null;
             if (item.status === SyncRequestStatusEnum.FINISHED) {
-                /**
-                 * VELIK TODO:
-                 * Potrebno je narediti tudi logiko, da preveri ali obstaja vmes tudi podatek v TEMP,
-                 * v tem primeru je potrebno prvo narediti merge med TEMP in sync shrambo
-                 * in na koncu sele popraviti vrednost objekta in status nastaviti na `pending_sync`
-                 */
                 await syncTable.table(convertedEntityName)
                     .filter((obj: SyncChamberRecordStructure) => obj.localUUID === item.uuid)
                     .modify(
                         (obj: SyncChamberRecordStructure) => {
                             obj.objectStatus = ChamberSyncObjectStatus.synced;
                             obj.lastRequestUuid = null;
+                            if (tempEntry) {
+                                obj.changes = tempEntry.changes;
+                                obj.lastModified = tempEntry.lastModified;
+                                obj.record = tempEntry.record;
+                            }
                         }
                     );
+                if (tempEntry) {
+                    await tempTable.table(convertedEntityName).delete(item.uuid);
+                }
                 await this.sendNewEventNotification(
                     plainToInstance(SyncLibraryNotification, {
                         createdAt: new Date(),
@@ -152,96 +177,6 @@ export class RetryManagement {
     async processErrorRetryResponse(error: any) {
         // TODO: Implementacija za error use-case
         this.consoleOutput.output(`#processErrorRetryResponse  : `, error)
-    }
-
-    async evaluationIntervalCalback_deprecated() {
-        // this.consoleOutput.output(`We are in RETRY MANAGEMENT INTERVAL callback`);
-        // return;
-        clearInterval(this.evaluationInterval);
-        if (this.isEvaluationRunning) {
-            return;
-        }
-
-        this.isEvaluationRunning = true;
-        try {
-            this.consoleOutput.output(`Retry management interval is executing`);
-            // first check if we have any entries in retry database
-            const retriesMapper: any = {};
-            const retriesMapperRefactored: any = {};
-            const retryEvaluationPromise = new DeferredPromise();
-            await new Promise<void>(async (resolve) => {
-                try {
-                    this.consoleOutput.output(`I get insecure`);
-                    for await (let table of this.syncingDB!.tables) {
-                        // @exaplanation -> if entry exists in syncingDB , then for sure one of two things is correct (either sync started, either retry is pending!)!
-                        // Predhodnje sem imel samo preverjanje statusa ali je == `pending_retry`. Ker pa menim, da se lahko zatakne tudi pri statusu `in_sync` bom dodal tudi ta pogoj
-                        // const itemsForRetry = await table.filter((syncingItem) => syncingItem.status == 'pending_retry').toArray();
-                        const itemsForRetry = await table.filter((syncingItem: SyncingEntryI) => (syncingItem.status == SyncingObjectStatus.pending_retry || syncingItem.status == SyncingObjectStatus.in_sync)).toArray();
-                        this.consoleOutput.output(`How many (table: ${table.name}) : `, itemsForRetry)
-                        if (itemsForRetry.length > 0) {
-                            retriesMapperRefactored[table.name] = itemsForRetry;
-                            // Here we need to trigger thread for sending data to BE
-                            // Here I prepose to handle DB manipulation in this thread and not in RetryWorker thread -> because otherwise we could get some ???conflicts within DB instances???.
-                            {
-                                const retryWorker = new Worker(new URL('./retry.worker', import.meta.url)); // we need this in seperate variable to be able to terminate it
-                                const RetryWorkerClass = Comlink.wrap<typeof RetryWorker>(retryWorker);
-                                const retryThread = await new RetryWorkerClass();
-                                retryThread.finishDbSetup();
-                                this.consoleOutput.closeGroup();
-
-                                // do logic for re-evaluating request status on BE
-                                const retryResponse = await retryThread.startRefactoredRetryProcess(itemsForRetry, table.name);
-                                this.consoleOutput.output(`Dont leave me tongue tied  :  `, retryResponse);
-
-                                // before terminating thread close DB
-                                retryThread.closeDb();
-                                retryWorker.terminate();
-
-                            }
-                        }
-                    }
-                    // for await (let table of this.retryDB!.tables) { // [].forEach(()=>{}) -> does not allow await inside -> it will bypass it and immediately switch to another iteration
-                    //     retriesMapper[table.name] = RETRY_TABLES_CONFIGURATION[table.name] ? RETRY_TABLES_CONFIGURATION[table.name] : RETRY_DEFAULT_CONFIGURATION;
-                    //     const foundRetryEntries = await table.filter((retryItem: RetryEntryI) => retryItem.retries < retriesMapper[table.name]).toArray();
-                    //     this.consoleOutput.output(`no matter what they say`);
-                    //     if (foundRetryEntries.length > 0) {
-                    //         const retryWorker = new Worker(new URL('./retry.worker', import.meta.url)); // we need this in seperate variable to be able to terminate it
-                    //         const RetryWorkerClass = Comlink.wrap<typeof RetryWorker>(retryWorker);
-                    //         const retryThread = await new RetryWorkerClass();
-                    //         this.consoleOutput.closeGroup();
-
-                    //         // do logic for re-evaluating request status on BE
-                    //         const retryResponse = await retryThread.startRetryProcess(foundRetryEntries, table.name);
-                    //         this.consoleOutput.output(`What is retryresponse  `, retryResponse);
-                    //         if (retryResponse.status == RetryWorkerResponseStatus.SUCCESS) {
-                    //             // if (retryResponse.data?.status == ServerRetryEntityStatus.canceled || retryResponse.data?.status == ServerRetryEntityStatus.finished || retryResponse.data?.status == ServerRetryEntityStatus.stopped) {
-
-                    //             // }
-                    //         } else {
-                    //             // error scenario
-                    //         }
-                    //         this.consoleOutput.output(` - after retry worker response: - `, retryResponse);
-
-                    //         // retryWorker.terminate();
-                    //         retriesMapper[table.name] = foundRetryEntries;
-                    //     }
-                    //     this.consoleOutput.output(`We want the world and we want it ${table.name}`, foundRetryEntries.length);
-
-                    // }
-                    this.consoleOutput.output(`After forloop ends`);
-                } finally {
-                    resolve();
-                }
-            });
-
-        } catch (e) {
-            this.consoleOutput.output(`Some error occured in evaluationIntervalCallback`, e);
-        } finally {
-            this.consoleOutput.output(`this is incorrect`);
-            this.isEvaluationRunning = false; // Uncomment this after process is correctly implemented because without this interval will not proceed with promise logic
-            // clearInterval(this.evaluationInterval);
-        }
-
     }
 
     async addNewEntry(objectName: string, data: any) {
@@ -262,10 +197,13 @@ export class RetryManagement {
     public async finishInit() {
         this.retryDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME, DATABASE_TABLES_MAPPER);
         this.syncingDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME, DATABASE_TABLES_MAPPER);
-        this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
+        // this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
+        await this.finishSyncDBSetup();
+        await this.finishTempDBSetup();
+
         await this.retryDB.finishSetup();
         await this.syncingDB.finishSetup();
-        await this.syncDB.finishSetup();
+        // await this.syncDB.finishSetup();
         this.isReady = true;
     }
 
@@ -280,6 +218,20 @@ export class RetryManagement {
     async finishSyncDBSetup() {
         this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
         await this.syncDB.finishSetup();
+        // this.syncingDBChangeSubscription = this.syncingChangeSubscription(this.syncingDB);
+    }
+
+    async getTempDB(): Promise<AppDB> {
+        if (!this.tempDB?.isOpen()) {
+            // open database
+            await this.finishTempDBSetup();
+        }
+        return this.tempDB!;
+    }
+
+    async finishTempDBSetup() {
+        this.tempDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME);
+        await this.tempDB.finishSetup();
         // this.syncingDBChangeSubscription = this.syncingChangeSubscription(this.syncingDB);
     }
 
