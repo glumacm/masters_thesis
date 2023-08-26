@@ -1,7 +1,7 @@
 import { BehaviorSubject, Observable } from "rxjs";
 import { skipWhile, switchMap } from "rxjs/operators";
 import { NetworkStatusEnum } from "../interfaces/network-status.interfaces";
-import { console_log_with_style, CONSOLE_STYLE, CustomConsoleOutput } from "../utilities/console-style";
+import { CONSOLE_STYLE, CustomConsoleOutput } from "../utilities/console-style";
 
 export class NetworkStatus {
     private static _instance: NetworkStatus;
@@ -15,6 +15,7 @@ export class NetworkStatus {
 
     private constructor(preExistingExecutionCondition: boolean = false) {
         this.customOutput = new CustomConsoleOutput('NetworkStatus', CONSOLE_STYLE.sync_lib_main_positive_vibe);
+        this.customOutput.closeGroup();
         if (preExistingExecutionCondition) {
             this.customOutput.output(`Who data`, preExistingExecutionCondition)
             this.firstExecution.next(false);

@@ -12,6 +12,7 @@ export class ConflictService {
 
     constructor() {
         this.consoleOutput = new CustomConsoleOutput(`ConflictService`, CONSOLE_STYLE.magenta_and_white);
+        this.consoleOutput.closeGroup();
     }
 
     createEmptyChamberRecord(

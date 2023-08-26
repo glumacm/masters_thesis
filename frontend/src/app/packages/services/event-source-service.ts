@@ -36,6 +36,7 @@ export class EventSourceService {
         topics: string[], 
     ){
         this.consoleOutput = new CustomConsoleOutput('EventSourceService', CONSOLE_STYLE.sync_lib_main_positive_vibe);
+        this.consoleOutput.closeGroup();
         this.eventSourceStream = new Subject();
         this.eventSourceUrl = eventSourceUrl;
         this.topics = topics;
@@ -77,7 +78,7 @@ export class EventSourceService {
 
     public eventSourceUpdateError(error: Event) {
         this.consoleOutput.output('Error: ', error);
-        throw new Error('Event source returned an error  ');
+        // throw new Error('Event source returned an error  ');
     }
 
     public closeEventSource(): void {

@@ -26,6 +26,7 @@ export class RetryWorker {
 
     constructor() {
         this.consoleOutput = new CustomConsoleOutput('RetryWorker', CONSOLE_STYLE.magenta_and_white);
+        this.consoleOutput.closeGroup();
         this.syncingDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME);
 
         // SERVICES

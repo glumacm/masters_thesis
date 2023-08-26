@@ -62,6 +62,7 @@ export class CustomAxios {
 
     constructor(mockedAxios: boolean = false, mockedResponse: MockedResponse | undefined = undefined) {
         this.customOuput = new CustomConsoleOutput('CustomAxios', CONSOLE_STYLE.sync_lib_retry_worker_thread);
+        this.customOuput.closeGroup();
         this.mockedAxios = mockedAxios;
         this.instance = axios.create();
         if (mockedAxios) {

@@ -62,6 +62,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     private route: ActivatedRoute,
   ) {
     this.consoleOutput = new CustomConsoleOutput('SimulationOnlineWithSteps', CONSOLE_STYLE.sync_lib_retry_management);
+    this.consoleOutput.closeGroup();
   }
   ngOnInit(): void {
 
