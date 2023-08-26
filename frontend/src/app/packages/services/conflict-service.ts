@@ -26,6 +26,7 @@ export class ConflictService {
             localUUID: objectUuid,
             changes: changes,
             // changes: changes ?? [],
+            lastRequestUuid: null,
             record: record ?? undefined,
             objectStatus,
             lastModified: new Date(),
@@ -53,6 +54,9 @@ export class ConflictService {
     ): SyncChamberRecordStructure {
         let record: SyncChamberRecordStructure | undefined = existingRecord ? cloneDeep(existingRecord) : this.createEmptyChamberRecord(objectUuid, [], undefined, recordStatus);
 
+        if (!record.lastRequestUuid) {
+            record.lastRequestUuid = null;
+        }
         if (!record.changes) {
             record.changes = []
         }

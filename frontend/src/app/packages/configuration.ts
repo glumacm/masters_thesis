@@ -66,7 +66,7 @@ export const SHORT_ENTITIY_NAME_TO_OBJECT_NAME: any = {
 export const DATABASE_TABLES_MAPPER: { [key: string]: any } = {
     'sync' : { 
         'SyncDB_object_name128': '' ,
-        'example_table': '&localUUID,objectStatus,changes,record,lastModified',
+        'example_table': '&localUUID,objectStatus,changes,record,lastModified,lastRequestUuid',
     },
     'syncing' : { 'example_table': '&localUUID,objectStatus,changes,record,lastModified' },
     'sync_conflict' : { 'example_table': '&objectUuid,conflicts,changes,record,lastModified' },  // Sklepam, da `changes` ne bo potreben
@@ -89,8 +89,8 @@ export const DATABASE_TABLES_SCHEMA_MAPPER: { [key: string] : string} = {
     'sync_retry': '&objectUuid,requestUuid,status,retries,createdDatetime',
     'syncing_refactored': '&objectUuid,requestUuid,status,retries,data,createdDatetime', // status == 'in_progres' | 'pending_retry' | 'finished'
     // 'sync': '&localUUID,changes,lastModified,record,status', // I think this should be deprecated
-    'sync': '&localUUID,changes,lastModified,record,objectStatus',
-    'sync_temp': '&localUUID,changes,lastModified,record,objectStatus',
+    'sync': '&localUUID,changes,lastModified,record,objectStatus,lastRequestUuid',
+    'sync_temp': '&localUUID,changes,lastModified,record,objectStatus,lastRequestUuid',
     'sync_conflict': '&objectUuid,conflicts,changes,record,lastModified',
 }
 

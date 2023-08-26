@@ -8,5 +8,5 @@ export class SyncRequestStatusRequest
   //@ts-ignore
   entityName: string
   //@ts-ignore
-  listOfUuids: string[]
+  listOfUuids: string[]  // This uuids are REQUEST uuids!!!
 }

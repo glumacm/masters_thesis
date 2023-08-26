@@ -155,3 +155,8 @@ export async function findPendingRetryEntries(tables: Table[], transformFunction
         return {} as any;
     }
 }
+
+export async function findPendingRetryItemByRequestUuid(syncDB: AppDB, requestUuid: string, entityName: string): Promise<SyncChamberRecordStructure | undefined> {
+    const foundItems = await syncDB.table(entityName).filter((obj: SyncChamberRecordStructure) => obj.objectStatus === ChamberSyncObjectStatus.pending_retry && obj.lastRequestUuid === requestUuid);
+    return await foundItems.first();
+}

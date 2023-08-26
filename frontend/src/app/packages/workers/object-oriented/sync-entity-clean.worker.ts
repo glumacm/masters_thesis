@@ -776,8 +776,13 @@ export class SyncEntityClean {
             //await this.timeoutFunc({type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: 'Predolga zahteva (timeout)'} as SyncLibraryNotification, 10);
 
         } else if (error.code === SynchronizationSyncStatus.ECONNABORTED) {
-            const valueFromSyncingDB = await this.syncingDB?.table(entityName).where({ 'objectUuid': objectUuid }).filter((item: SyncingEntryI) => item.retries < 10)?.modify((item: SyncingEntryI) => item.status = SyncingObjectStatus.pending_retry);  // THIS SHOULD EXIST - since we do not proceed to send to BE without creating data in syncingDB
-            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`} as SyncLibraryNotification), 10);
+            // const valueFromSyncingDB = await this.syncingDB?.table(entityName).where({ 'objectUuid': objectUuid }).filter((item: SyncingEntryI) => item.retries < 10)?.modify((item: SyncingEntryI) => item.status = SyncingObjectStatus.pending_retry);  // THIS SHOULD EXIST - since we do not proceed to send to BE without creating data in syncingDB
+            await (await this.getSyncDB()).table(entityName).where({'localUUID': objectUuid}).modify((obj: SyncChamberRecordStructure) => {
+                obj.objectStatus = ChamberSyncObjectStatus.pending_retry;
+                obj.lastRequestUuid = requestUuid;
+            });
+            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`}), 10);
+            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.ITEM_IS_PENDING_RETRY, message: `Set item with uuid: ${objectUuid} to status:${ChamberSyncObjectStatus.pending_retry}`}), 10);
         } else if (error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) {
             // To je napaka, ki je nismo predpostavili/odkrili med razvojem in zato jo tukaj genericno zajamemo - resetiramo podatke
             await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {

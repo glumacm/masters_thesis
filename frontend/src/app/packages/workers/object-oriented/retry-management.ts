@@ -9,7 +9,7 @@ import { RetryEntryI, SyncingEntryI, SyncingObjectStatus } from '../retry/utilit
 import { RetryWorker } from './retry.worker';
 import { Table } from 'dexie';
 import { ChamberSyncObjectStatus, SyncChamberRecordStructure } from '../../interfaces/sync-storage.interfaces';
-import { findPendingRetryEntries } from '../../utilities/storage-utilities';
+import { findPendingRetryEntries, findPendingRetryItemByRequestUuid } from '../../utilities/storage-utilities';
 import { requestStatusCheck } from '../../services/network-calls';
 import { plainToInstance } from 'class-transformer';
 import { SyncRequestStatusResponse } from '../../models/sync/sync-request-status-response.model';
@@ -81,7 +81,7 @@ export class RetryManagement {
 
         // 1. poisci ustrezne podatke iz shrambe
         const tables: Table[] | undefined = this.syncDB?.tables;
-        const mappedUuidsToEntities = await findPendingRetryEntries((await this.syncDB?.tables ?? []), (obj: SyncChamberRecordStructure) => obj.localUUID);
+        const mappedUuidsToEntities = await findPendingRetryEntries((await this.syncDB?.tables ?? []), (obj: SyncChamberRecordStructure) => obj.lastRequestUuid);
         for (let property of Object.keys(mappedUuidsToEntities)) {
             // 1.a ignore empty list entries
             // 1.b send each entity uuids to BE -> need to fix BE to allow receiving UUIDs instead of single UUId 
@@ -142,11 +142,22 @@ export class RetryManagement {
          * se podatkovna baza posodobi, ko dobi obvestilo, da je prislo do spremembe.
          */
         for (let item of responseData.listOfRequestsStatuses) {
+            const itemFromSync = await findPendingRetryItemByRequestUuid(syncTable, item.uuid, convertedEntityName)!;
+            if (!itemFromSync) {
+                await  this.sendNewEventNotification(  // tako bomo vsaj zaznali napako v izpisu (ce smo naroceni na obvestila)
+                    {
+                        createdAt: new Date(),
+                        type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
+                        message: `Ne moremo dobiti zapisa o sync itemu z lastRequestUuid-jem: ${item.uuid} v entiteti: ${convertedEntityName}.`
+                    } as SyncLibraryNotification
+                );
+                continue;
+            }
             // OPOZORILO: Nujno moramo preveriti ali temp tabela obstaja preden preverimo za TEMP podatek
-            const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(item.uuid) : null;
+            const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(itemFromSync.localUUID) : null;
             if (item.status === SyncRequestStatusEnum.FINISHED) {
                 await syncTable.table(convertedEntityName)
-                    .filter((obj: SyncChamberRecordStructure) => obj.localUUID === item.uuid)
+                    .filter((obj: SyncChamberRecordStructure) => obj.localUUID === itemFromSync.localUUID)
                     .modify(
                         (obj: SyncChamberRecordStructure) => {
                             obj.objectStatus = ChamberSyncObjectStatus.synced;
@@ -159,13 +170,13 @@ export class RetryManagement {
                         }
                     );
                 if (tempEntry) {
-                    await tempTable.table(convertedEntityName).delete(item.uuid);
+                    await tempTable.table(convertedEntityName).delete(itemFromSync.localUUID);
                 }
                 await this.sendNewEventNotification(
                     plainToInstance(SyncLibraryNotification, {
                         createdAt: new Date(),
                         type: SyncLibraryNotificationEnum.RESOLVED_RETRY_ITEM,
-                        message: `Uspesno smo prepoznali zakljucen proces za objekt: ${item.uuid}`,
+                        message: `Uspesno smo prepoznali zakljucen proces za objekt: ${itemFromSync.localUUID}`,
                     })
                 );
             }

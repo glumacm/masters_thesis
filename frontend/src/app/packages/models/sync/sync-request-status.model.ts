@@ -10,7 +10,5 @@ export class SyncRequestStatus {
   //@ts-ignore
   status: SyncRequestStatusEnum;
   //@ts-ignore
-  uuid: string;
-  //@ts-ignore
-  listOfUuids: string[];
+  uuid: string;  // THIS IS REQUEST UUID!!!
 }
