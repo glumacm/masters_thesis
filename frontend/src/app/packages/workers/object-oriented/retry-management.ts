@@ -7,12 +7,16 @@ import { console_log_with_style, CONSOLE_STYLE, CustomConsoleOutput } from '../.
 import { DeferredPromise } from '../../utilities/deferred';
 import { RetryEntryI, SyncingEntryI, SyncingObjectStatus } from '../retry/utilities';
 import { RetryWorker } from './retry.worker';
+import { Table } from 'dexie';
+import { ChamberSyncObjectStatus, SyncChamberRecordStructure } from '../../interfaces/sync-storage.interfaces';
+import { findPendingRetryEntries } from '../../utilities/storage-utilities';
 
 export class RetryManagement {
     private debug_prefix = 'RetryManagement'
 
     private retryDB: AppDB | undefined;
     private syncingDB: AppDB | undefined;
+    private syncDB: AppDB | undefined;
     private evaluationInterval: any;
     private consoleOutput: CustomConsoleOutput;
 
@@ -23,12 +27,13 @@ export class RetryManagement {
 
     constructor() {
         this.consoleOutput = new CustomConsoleOutput('RetryManagement', CONSOLE_STYLE.sync_lib_retry_management);
+        this.consoleOutput.closeGroup()
         // this.finishInit();
 
     }
 
     public initiateEvaluationInterval(interval: number) {
-
+        this.consoleOutput.output(`this is number: ${interval} `);
         if (this.evaluationInterval) {
             clearInterval(this.evaluationInterval);
         }
@@ -39,6 +44,25 @@ export class RetryManagement {
     }
 
     async evaluationIntervalCalback() {
+        clearInterval(this.evaluationInterval);
+        if (this.isEvaluationRunning) {
+            return;
+        }
+
+        this.isEvaluationRunning = true;
+        this.isEvaluationRunning = false;
+
+        const mapEntityToMatched: { [ key:string ]: [] } = {} as any;
+        // 1. poisci ustrezne podatke iz shrambe
+        const tables: Table[] | undefined = this.syncDB?.tables;
+        const mappedUuidsToEntities = await findPendingRetryEntries((await this.syncDB?.tables ?? []), (obj: SyncChamberRecordStructure) => obj.localUUID);
+        this.consoleOutput.output(`this are our results`, mappedUuidsToEntities);
+
+    }
+
+    async evaluationIntervalCalback_deprecated() {
+        // this.consoleOutput.output(`We are in RETRY MANAGEMENT INTERVAL callback`);
+        // return;
         clearInterval(this.evaluationInterval);
         if (this.isEvaluationRunning) {
             return;
@@ -144,8 +168,10 @@ export class RetryManagement {
     public async finishInit() {
         this.retryDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME, DATABASE_TABLES_MAPPER);
         this.syncingDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME, DATABASE_TABLES_MAPPER);
+        this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
         await this.retryDB.finishSetup();
         await this.syncingDB.finishSetup();
+        await this.syncDB.finishSetup();
         this.isReady = true;
     }
 

@@ -1,10 +1,8 @@
 import * as Comlink from 'comlink';
-import { Collection, Table } from 'dexie';
+import { Table } from 'dexie';
 import { CONFIGURATION_CONSTANTS, DATABASE_TABLES_SCHEMA_MAPPER, OBJECT_NAME_TO_PATH_MAPPER } from '../../configuration';
 import { HttpErrorResponseEnum, SynchronizationSyncStatus } from '../../enums/sync-process.enum';
-import { ResponseMessage, SynchronizationSyncEntityDecodedRecord } from '../../interfaces/sync-process.interfaces';
 import { ChamberSyncObjectStatus, SyncChamberRecordChangesStructure, SyncChamberRecordStructure } from '../../interfaces/sync-storage.interfaces';
-import { getObjectNameToPathMapper } from '../../services/configuration';
 import { AppDB } from '../../services/db';
 import { CONSOLE_STYLE, CustomConsoleOutput } from '../../utilities/console-style';
 import * as classTransformer from 'class-transformer';
@@ -12,11 +10,8 @@ import * as classTransformer from 'class-transformer';
 
 
 
-
-import { delay } from '../../utilities/worker-utilities';
 import { filter, Subscription } from 'rxjs';
 import { createSyncingEntry, SyncEntryI, SyncingEntryI, SyncingObjectStatus } from '../retry/utilities';
-import { prepareSyncEntryStructure } from '../../utilities/sync-entity-utilities';
 import { AxiosResponse } from 'axios';
 import { SyncEntityResponseI } from '../../interfaces/sync/sync-entity-response.interface';
 import { SyncEntityResponse } from '../../models/sync/sync-entity-response.model';
@@ -35,11 +30,10 @@ import { CustomAxios, CustomAxiosMockedResponseEnum, MockedResponse } from '../.
 import { SyncConfigurationI } from '../../interfaces/sync-configuration.interfaces';
 import { EventSourceService } from '../../services/event-source-service';
 import { DoctrineEventActionEnum } from '../../enums/sync/doctrine-event-action.enum';
-import { ObjectAlreadyConflictedError } from '../../errors/object-already-conflicted.error';
-import { ObjectStoredToTempError } from '../../errors/object-stored-to-temp.error';
 import { v4 as uuidv4 } from 'uuid'
 import { NetworkStatusEnum } from '../../interfaces/network-status.interfaces';
-import { Operation } from 'fast-json-patch';
+import { storeNewObject, StoreNewObjectResult } from '../../utilities/storage-utilities';
+import { SynchronizationLibraryBase } from '../../sync-lib-base';
 
 // type ResponseTest<T> = Promise<AxiosResponse<|SyncEntityResponse2I<T>>>;
 export class SyncEntityClean {
@@ -85,6 +79,7 @@ export class SyncEntityClean {
         public agentId: string = uuidv4(),
     ) {
         this.consoleOutput = new CustomConsoleOutput('SyncEntityWorker constructor', CONSOLE_STYLE.sync_entity_worker);
+        this.consoleOutput.closeGroup();
         // this.consoleOutput.output(`this is agent id: `, agentId);
         this.configuration = { agentId: agentId } as SyncConfigurationI;
         this.conflictService = new ConflictService();
@@ -111,7 +106,6 @@ export class SyncEntityClean {
 
 
         }
-
 
         this.eventSourceService?.eventSourceStream.pipe(filter((event) => EventSourceService.eventAllowedBasedOnConfiguration(event, this.configuration.agentId))).subscribe(
             {
@@ -151,8 +145,6 @@ export class SyncEntityClean {
         );
     }
 
-
-    // async updateEntityOnEventSourceEvent(dataFromEventSource: any, objectIdentifier: any, entityName: string) {
     async updateEntityOnEventSourceEvent(dataFromEventSource: any, entityName: string) {
         let syncDB = await this.getSyncDB();
         if (!syncDB.tables.find(table => table.name == entityName)) {
@@ -165,7 +157,6 @@ export class SyncEntityClean {
 
         if (!syncEntry) {
             // INSERT MODE needed
-            // await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, dataFromSync);
             syncEntry = this.conflictService.prepareSyncRecordChamberStructure(
                 objectIdentifier,
                 dataFromEventSource,
@@ -208,7 +199,28 @@ export class SyncEntityClean {
      * @param objectData Object data (NOT automerge.doc) !!!
      * @returns 
      */
-    async storeNewObject(entityName: string, objectUuid: string, objectData: any, newRecordBeEvent: boolean = false): Promise<SyncChamberRecordStructure> {
+    async storeNewObject(entityName: string, objectUuid: string, objectData: any, newRecordBeEvent: boolean = false): Promise<SyncChamberRecordStructure | null | undefined> {
+        let syncDB = await this.getSyncDB();
+        let tempDB = await this.getTempDB();
+        let conflictDB = await this.getSyncConflictDB();
+
+        const storedObjectResult: StoreNewObjectResult = await storeNewObject(
+            entityName,
+            objectUuid,
+            objectData,
+            this.syncLibAutoMerge,
+            this.conflictService,
+            conflictDB,
+            syncDB,
+            tempDB,
+            this.consoleOutput,
+            SynchronizationLibraryBase,
+            this.sendNewEventNotification
+        );
+        this.syncDB = storedObjectResult.syncDB;
+        this.tempDB = storedObjectResult.tempDB;
+        this.syncConflictDB = storedObjectResult.conflictDB;
+        
         /**
          * Kratek opis:
          * Funkcija mora na podlagi podanega objekta in UUID-ja, popraviti objekt v bazi glede na UUID.
@@ -219,81 +231,7 @@ export class SyncEntityClean {
          * 3. Iz zdruzenega objekta, pridobi zadnje spremembe in jih dodaj v CHANGES
          */
 
-        //USE-CASE za CONFLICT
-        const retrievedConflictDB = await this.getSyncConflictDB();
-        const existingConflictEntry = retrievedConflictDB.tableExists(entityName) ? (await retrievedConflictDB.table(entityName).get(objectUuid)) : undefined;
-
-        if (existingConflictEntry) {
-            // IMAMO PODATEK ZE V CONFLICTU in v tem primeru ne pustimo nadaljnega shranjevanja
-            // SyncLibraryNotification
-            this.sendNewEventNotification(classTransformer.plainToInstance(SyncLibraryNotification, { createdAt: new Date(), type: SyncLibraryNotificationEnum.ALREADY_CONFLICTED, message: `Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.` }));
-            throw new ObjectAlreadyConflictedError(`Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.`);
-        }
-
-        // USE-CASE ZA TEMP
-        const retrievedTempDB = await this.getTempDB();
-        // Kako ves da entityName ze obstaja v TEMP? 
-        const existingTempEntry = retrievedTempDB.tableExists(entityName) ? (await retrievedTempDB.table(entityName).get(objectUuid)) : undefined;
-        if (
-            existingTempEntry
-        ) {
-            // const dataFromTemp = cloneSyncObjectWithEncoded(existingTempEntry as any) as SyncChamberRecordStructure; // TODO: Spremeniti tip ki ga damo v funkcijo in ki ga dobimo iz funkcije
-            const dataFromTemp = cloneDeep(existingTempEntry) as SyncChamberRecordStructure;
-            // Ta zadeva naredi nekaj kar zaenkrat ne razumem
-            const dataToInsert = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, dataFromTemp);
-
-            (await retrievedTempDB.table(entityName)).put(dataToInsert, objectUuid);
-            const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: 'Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible (overwritten temp data).' };
-            this.sendNewEventNotification(classTransformer.plainToInstance(SyncLibraryNotification, newEvent));
-            throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible (overwritten temp data).`);
-        }
-
-        // Kaksna je razlika med tem, da ugotoivm, da moram nastaviti TEMP preko syncing in pre-existing TEMP?
-        const retrievedSyncDB1 = await this.getSyncDB();
-        const existingEntry: SyncEntryI = retrievedSyncDB1.tableExists(entityName) ? await retrievedSyncDB1.table(entityName).get(objectUuid) : undefined; // TODO: Manjka logika, ki bo existingentryju dodala nove podatke , ker drugace se povozijo prejsnej spremembe
-
-        if (
-            existingEntry &&
-            (
-                // existingEntry.status === SyncingObjectStatus.in_sync ||
-                // existingEntry.status === SyncingObjectStatus.pending_retry
-                existingEntry.objectStatus === ChamberSyncObjectStatus.in_sync ||
-                existingEntry.objectStatus === ChamberSyncObjectStatus.conflicted
-            )
-        ) {
-            const dataFromSync = cloneDeep(existingEntry) as SyncChamberRecordStructure;
-            const dataToInsert = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, dataFromSync);
-            //Priden to je pravilna uporaba
-            this.syncDB = await (await this.getTempDB()).addEntryToTable(entityName, objectUuid, dataToInsert, (await this.getTempDB()).verno / 10, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME] });
-            const newEvent = { createdAt: new Date(), type: SyncLibraryNotificationEnum.STORED_TO_TEMP, message: 'Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.' };
-            this.sendNewEventNotification(classTransformer.plainToInstance(SyncLibraryNotification, newEvent));
-            throw new ObjectStoredToTempError(`Current data is stored to TEMP because currently sync is in progress. After sync is done, we will update data if possible.`);
-        }
-
-        const retrievedSyncDB: AppDB = await this.getSyncDB()
-        if (!retrievedSyncDB.tableExists(entityName)) {
-            // create table for entity
-            this.syncDB = await (retrievedSyncDB).changeSchemaInstance(retrievedSyncDB, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME] }, retrievedSyncDB.verno / 10)
-        }
-
-        // V tem trenutku imamo sigurno tabelo `entityName` v syncDB
-        const preExisting: SyncEntryI | undefined = await (await this.getSyncDB()).table(entityName).get(objectUuid);
-
-        let dataToReturn: SyncChamberRecordStructure = {} as SyncChamberRecordStructure;
-
-        if (preExisting) {
-            dataToReturn = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, preExisting);
-        } else {
-            dataToReturn = this.conflictService.prepareSyncRecordChamberStructure(
-                objectUuid,
-                objectData,
-                [],
-                undefined,
-                newRecordBeEvent ? ChamberSyncObjectStatus.synced : ChamberSyncObjectStatus.pending_sync, objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] ? objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] : undefined,
-            ) as SyncChamberRecordStructure;
-        }
-        (await this.getSyncDB()).table(entityName).put(dataToReturn, objectUuid);
-        return dataToReturn;
+        return storedObjectResult.resultData;
     }
 
 
@@ -394,7 +332,6 @@ export class SyncEntityClean {
     }
 
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
-        this.consoleOutput.output(`Starting BATCH SYNC`);
         let initialTimer = 200;
         const timerSteper = 100;
         this.syncInProgress = true;
@@ -407,7 +344,6 @@ export class SyncEntityClean {
         try {
             
             if (this.networkStatus === NetworkStatusEnum.OFFLINE) {
-                // await this.sendNewEventNotification({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification);
                 timeoutFunction({type: SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE, message: 'Nimamo omrezja'} as SyncLibraryNotification, timerSteper);
                 return;
             }
@@ -425,16 +361,6 @@ export class SyncEntityClean {
                     mapper[syncTable.name] = tablePendingObjects;
                     mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
                 }
-            
-                // for (let i = 0; i <= syncDB.tables.length; i++) { //WTF??? zakaj dve iste foor zanke???
-                //     // za vsako tabelo poiscemo podatke
-                //     const tablePendingObjects = await syncTable.filter((obj: SyncChamberRecordStructure) => obj.objectStatus == ChamberSyncObjectStatus.pending_sync).toArray();
-
-                //     if (tablePendingObjects && tablePendingObjects.length > 0) {
-                //         mapper[syncTable.name] = tablePendingObjects;
-                //         mapEntityToUuids[syncTable.name] = tablePendingObjects.map((item: SyncChamberRecordStructure) => item.localUUID);
-                //     }
-                // }
             }
 
             for (let property of Object.keys(mapper)) {
@@ -447,13 +373,8 @@ export class SyncEntityClean {
                     /**
                      * Tukaj bi bilo smiselno razmisliti o tem kako resiti bolj "pametno".
                      * Mogoce za magistrsko je ok, ampak za nadaljni razvoj, bi bilo smiselno imeti nek stack/queue
-                     * 
-                     * Za nasledji korak, bi jaz pripravil enak postopek kot pri SINGLE syncu -> imamo success logiko in error logiko
-                     * 
-                     * Predlagam, da za response iz BE uporabim Tabelo istega classa kot imamo za SINGLE sync!
                      */
 
-                    // 
                     /**
                      * TODO: Zdi se mi, da manjka logika, da se podatki nastavijo v syncing + brisanje iz syncing po koncu! + logika, ki preveri ali je podatek v syncing??? (naceloma bi moral ze iz sync.objectStatus dobiti pravo zadevo)
                      * 
@@ -479,13 +400,8 @@ export class SyncEntityClean {
                         for (let syncItem of itemsToSyncAsArray) {
                             // property === is supposed to be sync table(entity) name
                             const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, mapEntityToRequestUuid[property], 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
-                            // const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
                             await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
                         }
-                        // itemsToSyncAsArray.forEach(async (syncItem: SyncChamberRecordStructure) => {
-                        //     const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, syncItem.localUUID, 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
-                        //     await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
-                        // });
 
                         // Nastavimo sync entryje na in_sync
                         await itemsToSync.modify((obj: SyncChamberRecordStructure) => {
@@ -503,14 +419,6 @@ export class SyncEntityClean {
                             (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids, mapEntityToRequestUuid[property]),
                         );
                     } catch (exception) {
-                        // TODO: po vsej verjetnosti ce pride ddo kaksne napake ki je nise mpredpostavil
-                        // this.sendNewEventNotification(
-                        //     {
-                        //         type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
-                        //         message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
-                        //         error: exception,
-                        //     } as SyncLibraryNotification
-                        // );
                         timeoutFunction({
                             type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
                             message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
@@ -522,18 +430,11 @@ export class SyncEntityClean {
                 }
 
             }
-            // await this.sendNewEventNotification(
-            //     {
-            //         type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
-            //         message: 'Batch sync je zakljucen',
-            //         error: null,
-            //     } as SyncLibraryNotification
-            // );
         }
         finally {
             this.syncInProgress = false;
         }
-        timeoutFunction({
+        await timeoutFunction({
             type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
             message: 'Batch sync je zakljucen',
             error: null,
@@ -546,15 +447,6 @@ export class SyncEntityClean {
         for (let uuid of uuidsToSync) {
             await this.singleSyncProcessError(error, entityName, uuid, requestUuid);
         }
-
-        // ta napaka nima smisla, ker ne moremo vedeti, ali je res prislo do concurrency problema!
-        // Znotraj singleSyncProcessErrorja, lahko posljem obvestilo!
-        // await this.sendNewEventNotification(
-        //     {
-        //       type: SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM,
-        //       message: 'Poskusimo ponovno pognati',
-        //     } as SyncLibraryNotification
-        // );
         return;
 
     }
@@ -573,21 +465,12 @@ export class SyncEntityClean {
                     message: `Could not sync batch for entity: ${entityName}`,
                 } as SyncLibraryNotification
             );
-            // throw new Error(`Error: ${SyncLibraryNotificationEnum.BATCH_SINGLE_ENTITY_FAILED}`)
             return;
         }
         switch (data.status) {
             case SyncBatchSingleEntityStatusEnum.COMPLETE_SUCCESS:
             case SyncBatchSingleEntityStatusEnum.PARTIAL_SUCESS:
-                //TODO: zaenkrat bom oboje procesiral pod isto logiko. Kasneje je potrebno to preoblikovati za vsako posebej
                 for (let syncRecord of data.syncRecords) {
-                    /**
-                     * Tukaj bi predlagal, da se:
-                     * - na BE doda kodo, ki bo vrnila tudi UUID
-                     * - da preko UUID-ja vzamem podatek iz FE
-                     * - na koncu poklicem `singleSyncProcessSuccess(...), ki bo ze pokrival vse kar potrebujem
-                     */
-
                     // Poznamo napako, ki pove, da UUID manjka, v takem primeru bo tak response "ghost" response - ki ne bo imel nobenega handlerja, ker ne moremo poslati nekaj kar nima UUID-ja.
                     if (syncRecord.status == SyncEntityStatusEnum.MISSING_UUID_DATA || !syncRecord.recordUuid) {
                         continue; // ignoriramo tako napako zaenkrat
@@ -616,8 +499,6 @@ export class SyncEntityClean {
                         SyncLibraryNotificationEnum.UNKNOWN_ERROR,
                     );
                 }
-
-                // throw new Error(`#processBatchSingleEntitySuccessLogic->FATAL_ERROR not yet implemneted logic`);
                 // To bi moralo zajeti logiko za:
                 // - SyncBatchSingleEntityStatusEnum.FATAL_ERROR
                 // - vse neprepoznane napake
@@ -625,86 +506,6 @@ export class SyncEntityClean {
                 break;
         }
     }
-
-
-    async startObjectEntitySyncProcessRefactored(entityName: string, data: any, objectUuid: string, delay_to_wait: number = 0, useSyncLibAutoMerge: boolean = true) {
-        if (!(await this.doesTableExistInSyncDB(entityName))) {
-            const syncDB = await this.getSyncDB();
-            this.syncDB = await syncDB?.changeSchemaInstance(syncDB, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME] });
-        }
-        // Naslednji dve vrstici sta NESMISELNI!!!! Mi pred klicem `startObjectEntitySyncProcessRefactored` ze shranimo podatek v SYNC, ali TEMP !!!!!!!!
-        let entryFromSyncDB = await this.doestEntryExistInSyncDBTable(entityName, objectUuid);
-        if (!entryFromSyncDB) {
-            // dodajmo objekt v tabelo in takoj posljemo na B
-            (await this.getSyncDB())?.table(entityName).put(prepareSyncEntryStructure(objectUuid, data, null, undefined, ChamberSyncObjectStatus.pending_sync, new Date()), objectUuid);
-        } else if (!(entryFromSyncDB.objectStatus == ChamberSyncObjectStatus.synced || entryFromSyncDB.objectStatus == ChamberSyncObjectStatus.pending_sync)) {
-            /**
-             * Torej ta del bi se hipoteticno izvedel, ce bi mi hoteli pognati SYNC za nek objekt, ki je v statusu IN_SYNC, ali CONFLICTED
-             * Ker pa bomo imeli eno drugo logiko, ki bo avtomatsko poiskali vse ustrezne entryje, se ta logika naceloma ne bi smela zgoditi!!!
-             */
-            throw new Error('I think this logic is already covered in AutoMergeWrapper.storeNewObject -- CONSIDER WHAT TO DO WITH THIS BLOCK OF LOGIC, because AutoMergeWrapper is not used ANYMORE!!!!');
-        }
-
-        //@warning Logiko ki prepreci sinhronizacijo ob shranjevanju ce imamo TEMP ali CONFLICT primer je urejen v `storeNewObject` funkciji. 
-        // TODO: V main.ts bo potrebno narediti eno splosno funkcijo, ki bo namenjena za INSERt/UPDATE in ki bo posledicno naredila isto kot sedaj delam npr v `home-sync-clean` komponenti.
-
-        const syncingDBreference = await this.getSyncingDB();
-        if (!(await this.doesTableExistInDB(syncingDBreference, entityName))) {
-            this.syncingDB = await syncingDBreference.changeSchemaInstance(syncingDBreference, { [entityName]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME] })
-        }
-
-        /**
-         * Trenutno se mi zdi kot, da mi manjka logika, da preveri ali v SYNCING_REFACTORED
-         * ze obstaja ta record. Bi pa rekel, da je mogoce to bolj logika za "avtomatiko", ki
-         * bo poiskala ustrezne objete za SYNC
-         */
-
-        await (await this.getSyncDB())!.table(entityName).where({ 'localUUID': objectUuid }).modify(
-            (objectItem) => {
-                // objectItem.status = ChamberSyncObjectStatus.in_sync;
-                objectItem.objectStatus = ChamberSyncObjectStatus.in_sync;
-            }
-        );
-
-        // Create object that we will send to BE -> it just so happens that structure is the same as entry in the SYNCING DB!
-        const syncingDuplicate = createSyncingEntry(objectUuid, objectUuid, 0, SyncingObjectStatus.in_sync, new Date(), entryFromSyncDB);
-        const syncingEntry = await (await this.getSyncingDB())?.table(entityName).put(syncingDuplicate, objectUuid);
-        // throw new Error(`Just prevent further action so that I can test retry data`);
-
-        const entityRecords = [syncingDuplicate].map((syncingItem: SyncingEntryI) => {
-            return {
-                localUUID: syncingItem.objectUuid,
-                lastModified: syncingItem.data?.lastModified,
-                // record: useSyncLibAutoMerge ? syncingItem.data?.record : convertUint8ArrayToObject(syncingItem.data?.record), //@warning `syncingItem.data.record` je tipa Uint8Array!!!
-                record: syncingItem.data?.record,
-            } as SyncChamberRecordStructure
-            // } as SynchronizationSyncEntityDecodedRecord
-        });
-
-        const requestUuid = objectUuid; // uuidv4();
-
-
-        // @ALERT: This call to BE should not be executed if there is no NETWORK!!!!!!!!!!
-        let batchResponse = {};
-        try {
-            if (!isNaN(delay_to_wait) && delay_to_wait > 0) {
-                await delay(delay_to_wait);
-            }
-            batchResponse = await this.sync_entity_record(getObjectNameToPathMapper('')[entityName], entityRecords[0], requestUuid).then(
-                async (success) => await this.singleSyncProcessSuccess.apply(this, [success, entityName, requestUuid, entityRecords[0]]),
-                async (error) => await this.singleSyncProcessError.apply(this, [error, entityName, objectUuid, requestUuid]),
-            );
-        }
-        catch (exception) {
-            this.consoleOutput.output(`This is errror in sync-entity worker ${JSON.stringify(exception)}`);
-            batchResponse = {};
-        }
-
-        return batchResponse; // Ta await je pomojem nonsense!
-
-    }
-
-
 
     /*********************CALLBACKS FOR SINGLE SYNC PROCESS*******************/
     /**
@@ -720,23 +521,19 @@ export class SyncEntityClean {
         // async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SynchronizationSyncEntityDecodedRecord) {
         // if succeess cOMPLETE -> remove duplicatred entry from syncingDB and set entry in syncDB to SYNCED
 
-        // const syncEntityResponseInstance = new SyncEntityResponse((success));
         const syncEntityResponseInstance = classTransformer.plainToInstance(SyncEntityResponse, success);
 
         this.consoleOutput.output(`Response received:`, success); // Posebej uporabno za debagiranje mockanih requestov.
         switch (syncEntityResponseInstance.status) {
             case SyncEntityStatusEnum.SUCCESS:
-                //@description Scenarij, ko je vse ok
-                // await this.syncStatusSuccessLogicCustomAutoMerge(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName);
                 await this.syncStatusSuccessLogicCustomAutoMerge(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName, syncEntityResponseInstance.lastModified ?? new Date());
-                // await this.syncStatusSuccessLogic(objectUuid, syncEntityResponseInstance?.mergedData?.mergedDbObject, syncEntityRecord, collectionName);
                 const successEvent: SyncLibraryNotification = classTransformer.plainToClass(SyncLibraryNotification, { type: SyncLibraryNotificationEnum.BATCH_SINGLE_SYNC_SUCCESS, createdAt: new Date(), message: `Uspesno zakljucen sync ${objectUuid}`});
                 await this.sendNewEventNotification(successEvent);
                 break;
             case SyncEntityStatusEnum.CONFLICT:
                 await this.syncStatusConflictLogic(objectUuid, collectionName, syncEntityResponseInstance.mergedData?.mergedDbObject, syncEntityResponseInstance.mergedData?.conflicts ? syncEntityResponseInstance.mergedData?.conflicts : []); // Ampak ce pride do tukaj, ne bi smelo biti dvoma da imamo vsaj prazen Array
                 break;
-            case SyncEntityStatusEnum.SYNCHRONIZATION_LAST_MODIFIED_FIELD_MISMATCH: // Ta status se zaenkat nikoli ne poslje iz BE - ZATOREJ ga ne rabimo implementirati!
+            case SyncEntityStatusEnum.SYNCHRONIZATION_LAST_MODIFIED_FIELD_MISMATCH: // Ta status se zaenkat nikoli ne poslje iz BE - ZATOREJ ga ne rabimo implementirati! (TUDI mogoce nima ravno smisla)
             case SyncEntityStatusEnum.ENTITY_DOES_NOT_EXIST:
             case SyncEntityStatusEnum.MISSING_REQUIRED_FIELDS:
             case SyncEntityStatusEnum.REPOSITORY_NOT_FOUND:
@@ -831,9 +628,7 @@ export class SyncEntityClean {
      * brez `objectStatus` vrednosti!!!). Ker je vazno le da imam CHANGES in RECORD podatek noter, vse ostalo se tako ali tako na novo generira.
      * @param collectionName 
      */
-    // async syncStatusSuccessLogicCustomAutoMerge(objectUuid: string, mergedData: any, syncEntityChamberData: SyncChamberRecordStructure, collectionName: string) {
     async syncStatusSuccessLogicCustomAutoMerge(objectUuid: string, mergedData: any, syncEntityChamberData: SyncChamberRecordStructure, collectionName: string, beLastModified: Date) {
-        // async syncStatusSuccessLogicCustomAutoMerge(objectUuid: string, mergedData: any, syncEntityChamberData: SynchronizationSyncEntityDecodedRecord, collectionName: string) {
         // mergedData -> je podatek iz BE, ki je naceloma zdruzen ustrezno glede na poslane podatke. Torej mora biti to novi `sync` podatek.
         const newSyncChamberRecordData = cloneDeep(mergedData);
 
@@ -842,30 +637,8 @@ export class SyncEntityClean {
         const tempEntry: SyncChamberRecordStructure = retrievedTempDB.tableExists(collectionName) ? await retrievedTempDB.table(collectionName).get(objectUuid) : undefined;
 
         if (tempEntry) { // Mislim, da tukaj imam se nekaj pomanjkljivosti -> predvsem to, da ne APLICIRAM sprememb med TEMP in MERGED DATA!!!!
-            /**
-             * Potrebno bo narediti sledece:
-             * - narediti "merge" med prejetim podatkom in TEMP podatkom
-             * - ?ce mogoce? poiskati "changes" in jih dodati v CHANGES tabelo -> to mislim da naredi ze `applyNewChangesToExistingSyncObject`
-             * - shraniti novi podatek v SYNC in sele nato nastaviti SYNC podatek v `pending_sync` ali `synced`
-             */
-
-            /**
-             * Tukaj bo potrebno kasneje predvideti kako in kaj. Ker trenutno se bo TEMP smatral kot MERGED podatek - ker naceloma v temp damo 
-             * nekaj kar uporabnik predpostavlja, da bo normalno shranjeno, kar pomeni, da uporabniku predstavlja to LATEST podatek.
-             * Lahko pa naredim dodatek, ki bi bil uporaben:
-             * - izracunam `changes` med BE in TEMP
-             * - dodam changes in nadaljujem s TEMP kot source of truth.
-             */
-
-
-            /**
-             * To je HUDO NAROBE!!!
-             * Kako trenutno deluje:
-             * - poisce razlike med TEMP in BE podatki
-             *  + TEMP podatki so dejansko najbolj zadnji podatki, ki jih je uporabnik zelel aplicirati
-             *  + Ubistvu je to v osnovi dokaj pravilno, ce predpostavimo, da bomo na koncu uporabili to kar imamo v TEMP.
-             *  + IMPROVEMENT: Lahko bi naredil tako, da ko imamo TEMP in BE, bi preveril razlike in poiskal KONFLIKT (ampak to potem privede do vprasanja, zakaj ne preverjam konflikta ob sharnjevanju)
-             */
+            // Izracunamo razlike med TEMP in BE (synced) objektom, na koncu nastavimo TEMP podatke kot zadnje podatke.
+            // TODO: Rabimo dodati logiko, ki bo razlike med BE in TEMP dodala v `changes` tabelo.
             const comparedChanges = this.syncLibAutoMerge.compareTwoObjects(tempEntry.record, mergedData).filter(
                 this.syncLibAutoMerge.filterSyncRelatedOperations
             );
@@ -910,25 +683,7 @@ export class SyncEntityClean {
             ) as SyncChamberRecordStructure;
 
             dataToInsert.lastModified = beLastModified;
-
-
-            // await (await this.getSyncDB()!).table(collectionName).where({ 'localUUID': objectUuid }).modify(
-            //     (objectItem: SyncEntryI) => {
-            //         // objectItem.status = ChamberSyncObjectStatus.synced; // Po novem imamo `objectStatus` in ne 'status' polje
-            //         objectItem.record = newSyncChamberRecordData
-            //         objectItem.objectStatus = ChamberSyncObjectStatus.synced;
-            //     }
-            // );
             await (await this.getSyncDB()).table(collectionName).put(dataToInsert, objectUuid);
-
-            // Ce uporabimo zgornjo kodo, je potem nesmiselno delati MODIFY, ce lahko od enkrat naredimo PUT, ki bo na novo shranil celoten objekt pod nek UUID
-            // await (await this.getSyncDB()!).table(collectionName).where({ 'localUUID': objectUuid }).modify(
-            //     (objectItem: SyncEntryI) => {
-            //         // objectItem.status = ChamberSyncObjectStatus.synced; // Po novem imamo `objectStatus` in ne 'status' polje
-            //         objectItem.record = newSyncChamberRecordData
-            //         objectItem.objectStatus = ChamberSyncObjectStatus.synced;
-            //     }
-            // );
         }
         await (await this.getSyncingDB()).table(collectionName).where({ 'objectUuid': objectUuid }).delete();
     }
@@ -995,28 +750,20 @@ export class SyncEntityClean {
 
 
     async singleSyncProcessError(error: any, entityName: string, objectUuid: string, requestUuid: string): Promise<any> {
-        // predpostavka -> Ce ERR_NETWORK -> zadeva ni bila poslana na BE -> v tem primeru, pobrisemo entry iz SyncingDB, da se bo kasneje se enkrat avtomatsko preneslo
-        // predpostavka -> Ce ECONNABORTED -> med izvajanjeme je prislo do timeouta -> potreben retry da vidimo ali se je uspesno izvedlo ali ne.
+        /**
+         * Namen funkcije:
+         * - glede na HTTP related napako, sprocesiraj zahtevo do konca
+         *      - ERR_NETWORK -> povezava prekinjena: moramo izvesti RETRY
+         *      - ECONNABORTED -> timeout: moramo izvesti RETRY
+         *      - ERR_BAD_RESPONSE -> neka napaka na BE: vrni podatke v prejsnje stanje (pending_sync)
+         */
         this.consoleOutput.output(`Napaka pri prenosu singleSyncProcessError`, error);
-        // await delay(10000);
 
-        // SPODNJI SCENARIJ, je malce dvoumen... Ce bomo imeli ze obstojec retry proces. Ima smisel, da ga pustimo in ga ne brisemo... NE- obstojec retry ne more obstajati, ker do tukaj ne uspelo priti.
-        if (error.code === HttpErrorResponseEnum.ERR_NETWORK) { // To je med drugim tudi napaka za nepricakovano prekinjeno povezavo med FE in BE!
-            // remove entry from syncing
-            // USE-CASE(ERR_NETWORK), ko nimamo dostopa do serverja DELUJE (in perfect scenario)
-            // USE-CASE(ERR_BAD_RESPONSE), ko server vrne error -> torej da se izvede neka logika, ampak ker nismo ujeli te napake na BE, da response vrne kot error DELUJE (in perfect scenario)
-            // throw new Error('Check what we need to do when ERR_NETWORK is given!');
-            // return;
-
-            //TODO: Odstrani delay-je
+        // Ce se slucajno zgodi scenarij, ko bi app poslal na BE tudi ce ne bi bilo realne povezave, bi ta zadeva vrnila ERR_NETWORK (isto kot prekinjena povezava).
+        // Ko bo pa poslan RETRY, syncJob za request ne bo obstajal in SYNC item se bo vrnil v `pending_sync`.
+        if (error.code === HttpErrorResponseEnum.ERR_NETWORK) {
             // await delay(3000);
             this.syncingDB!.table(entityName).where({ 'objectUuid': objectUuid }).delete(); // Vedno je lahko le en entry za isti UUID, zato ne rabimo dodatnega filtriranja
-            // Potrebno je vrniti SYNC podatek v 'pending_sync' stanje.
-            // await delay(5000);
-            /**
-             * USE-CASE: Poslal bom podatke, na BE se shranijo, ampak ker je prislo do prekinjene povezave, se bo na BE shranil podatek posledicno
-             * se bo popravil tudi LASTMODIFIED!!!!
-             */
             // commented out below line on 25th of August -> swithing to real retry logic
             // await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => { obj.objectStatus = ChamberSyncObjectStatus.pending_sync });
             await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
@@ -1029,17 +776,16 @@ export class SyncEntityClean {
             //await this.timeoutFunc({type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: 'Predolga zahteva (timeout)'} as SyncLibraryNotification, 10);
 
         } else if (error.code === SynchronizationSyncStatus.ECONNABORTED) {
-            // To je use-case ko se zgodi timeout
-            // start retry process -> in this case retry process == repeat check if request was executed after configured time
             const valueFromSyncingDB = await this.syncingDB?.table(entityName).where({ 'objectUuid': objectUuid }).filter((item: SyncingEntryI) => item.retries < 10)?.modify((item: SyncingEntryI) => item.status = SyncingObjectStatus.pending_retry);  // THIS SHOULD EXIST - since we do not proceed to send to BE without creating data in syncingDB
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`} as SyncLibraryNotification), 10);
         } else if (error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) {
-            // TUkaj bi rekel, da se mora samo poslati obvestilo. Objekt bi nastavil nazaj v "pending_sync" - ker to je napaka BEja in tako bi lahko resili
-            // zagato, da se bo scasoma popravil problem.
-            this.consoleOutput.output(`ERR_BAD_RESPONSE - TODO , missing implementation`);
+            // To je napaka, ki je nismo predpostavili/odkrili med razvojem in zato jo tukaj genericno zajamemo - resetiramo podatke
+            await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
+                obj.objectStatus = ChamberSyncObjectStatus.pending_sync;
+                obj.lastRequestUuid = null;
+            });
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.UNKNOWN_ERROR, message: `Unrecognised error from BE.`} as SyncLibraryNotification), 10);
             return;
-            // throw new Error('SYNC-entity-worker -> ERR_BAD_RESPONSE TODO implementation');
         }
     }
     /*************************************************************************/
