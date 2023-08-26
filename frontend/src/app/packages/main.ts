@@ -42,10 +42,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
     // Ampak nisem se siguren ali bo to potrebno.
     private dbSyncTemp: AppDB | undefined;
     private dbSync: AppDB | undefined; // SYNC_DB should be from now on referenced as CURRENT DB
-    private dbSyncing: AppDB | undefined;  // This DB is used when we start sync process for an object of an entity -> each object in the entity will be seperate thread
-    private dbRetrySync: AppDB | undefined;
     private dbSyncConflict: AppDB | undefined;
-    private dbRetryManagerSync: AppDB | undefined;
 
     // Agent ID
     public agentId: string;
@@ -56,8 +53,6 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
     // private autoMergeWrapper: AutoMergeWrapper | undefined;
     private syncLibAutoMerge: SyncLibAutoMerge;
     private conflictService: ConflictService;
-
-    // private dbStaticSyncing: SyncingDB | undefined;
 
     private readonly DEBUG_CONSOLE_CLASS_PREFIX = 'SynchronizationLibrary';
 
@@ -121,10 +116,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
             // Ampak nisem se siguren ali bo to potrebno.
             this.dbSyncTemp = SynchronizationLibrary.existingInstance.dbSyncTemp;
             this.dbSync = SynchronizationLibrary.existingInstance.dbSync;
-            this.dbSyncing = SynchronizationLibrary.existingInstance.dbSyncing;
-            this.dbRetrySync = SynchronizationLibrary.existingInstance.dbRetrySync;
             this.dbSyncConflict = SynchronizationLibrary.existingInstance.dbSyncConflict;
-            this.dbRetryManagerSync = SynchronizationLibrary.existingInstance.dbRetryManagerSync;
 
             // external services
             this.sentryClient = SynchronizationLibrary.existingInstance.sentryClient;
@@ -151,16 +143,9 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         /**************  DATABASE ************/
         this.dbSyncTemp = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME, DATABASE_TABLES_MAPPER);
         this.dbSync = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME, DATABASE_TABLES_MAPPER);
-        // this.dbSyncing = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_DATABASE_NAME); // currently testing new option
-        this.dbSyncing = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME);
-        this.dbRetrySync = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME);
         this.dbSyncConflict = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_CONFLICT_DATABASE_NAME);
-        this.dbRetryManagerSync = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_MANAGER_DATABASE_NAME);
 
-        const dbRetryExists = await AppDB.exists(this.dbRetrySync.name);
         const dbTempExists = await AppDB.exists(this.dbSyncTemp.name);
-        const dbRetryManagerExists = await AppDB.exists(this.dbRetryManagerSync.name);
-        const dbSyncingExists = await AppDB.exists(this.dbSyncing.name);
         const dbSyncExists = await AppDB.exists(this.dbSync.name);
         const dbSyncConflictExists = await AppDB.exists(this.dbSyncConflict.name);
 
@@ -174,32 +159,14 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
             this.dbSyncConflict.close();
         }
 
-        if (!dbRetryExists) {
-            this.dbRetrySync = (await AppDB.changeSchema(this.dbRetrySync!, DATABASE_TABLES_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME]));
-            this.dbRetrySync.close();
-        }
-
-        if (!dbRetryManagerExists) {
-            this.dbRetryManagerSync = (await AppDB.changeSchema(this.dbRetryManagerSync!, DATABASE_TABLES_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_RETRY_MANAGER_DATABASE_NAME]));
-            this.dbRetryManagerSync.close();
-        }
-
         if (!dbTempExists) {
             this.dbSyncTemp = (await AppDB.changeSchema(this.dbSyncTemp!, DATABASE_TABLES_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME]));
             this.dbSyncTemp.close();
         }
 
-        if (!dbSyncingExists) {
-            this.dbSyncing = (await AppDB.changeSchema(this.dbSyncing!, { ['example_table']: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME] }));
-            this.dbSyncing.close();
-        }
-
-        await this.dbRetrySync.open();
         await this.dbSync.open();
-        await this.dbSyncing.open();
         await this.dbSyncTemp.open();
         await this.dbSyncConflict.open();
-        await this.dbRetryManagerSync.open();
 
         // Now let's open thread for retry manager
         // convert both to Comlink style!!
@@ -551,12 +518,6 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         return this.dbSyncTemp;
     }
 
-    async setupSyncingDB(): Promise<AppDB> {
-        this.dbSyncing = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME);
-        await this.dbSyncing.open();
-        return this.dbSyncing;
-    }
-
     async setupConflictDB(): Promise<AppDB> {
         this.dbSyncConflict = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_CONFLICT_DATABASE_NAME);
         await this.dbSyncConflict.open();
@@ -579,14 +540,6 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
             this.dbSyncTemp = await this.setupTempDB();
         }
         return this.dbSyncTemp;
-    }
-
-    async getSyncingDB(): Promise<AppDB> {
-        // if (!this.dbSyncing) {
-        if (!this.dbSyncing?.isOpen()) {
-            this.dbSyncing = await this.setupSyncingDB();
-        }
-        return this.dbSyncing;
     }
 
     async getConflictDB(): Promise<AppDB> {

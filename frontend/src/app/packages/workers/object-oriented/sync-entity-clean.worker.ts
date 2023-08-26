@@ -11,7 +11,7 @@ import * as classTransformer from 'class-transformer';
 
 
 import { filter, Subscription } from 'rxjs';
-import { createSyncingEntry, SyncEntryI, SyncingEntryI, SyncingObjectStatus } from '../retry/utilities';
+import { SyncEntryI } from '../retry/utilities';
 import { AxiosResponse } from 'axios';
 import { SyncEntityResponseI } from '../../interfaces/sync/sync-entity-response.interface';
 import { SyncEntityResponse } from '../../models/sync/sync-entity-response.model';
@@ -39,7 +39,6 @@ import { SynchronizationLibraryBase } from '../../sync-lib-base';
 export class SyncEntityClean {
     private syncDB: AppDB | undefined;
     private syncingDB: AppDB | undefined;
-    private retryDB: AppDB | undefined;
     private tempDB: AppDB | undefined;
     private syncConflictDB: AppDB | undefined;
     private consoleOutput: CustomConsoleOutput;
@@ -295,9 +294,6 @@ export class SyncEntityClean {
 
     async initDatabases() {
 
-        this.retryDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME);
-        await this.retryDB.finishSetup();
-
         await this.finishSyncDBSetup(); // this creates instance for db and sets listener for never versions of the database
         await this.finishSyncingDBSetup(); // this creates instance for db and sets listener for never versions of the database
         await this.finishTempDBSetup();
@@ -375,33 +371,12 @@ export class SyncEntityClean {
                      * Mogoce za magistrsko je ok, ampak za nadaljni razvoj, bi bilo smiselno imeti nek stack/queue
                      */
 
-                    /**
-                     * TODO: Zdi se mi, da manjka logika, da se podatki nastavijo v syncing + brisanje iz syncing po koncu! + logika, ki preveri ali je podatek v syncing??? (naceloma bi moral ze iz sync.objectStatus dobiti pravo zadevo)
-                     * 
-                     * Velika dilema: Zakaj bi rabil syncingDB, ce pa naceloma imam v sync db ustrezno stanje + lahko dodam se manjkajoci podatek za `retries` in to je to...?
-                     * Logika:
-                     *      -   na podlagi `uuids` + sync tabele ustvarimo syncingDB entryje
-                     */
                     try {
                         const itemsToSync = await syncDB.table(property)
                             .filter(
                                 (obj: SyncChamberRecordStructure) => obj.localUUID.includes(uuids)
                             );
                         const itemsToSyncAsArray = await itemsToSync.toArray();
-
-                        // Ustvarimo syncing podatke
-                        let syncingDBreference = await this.getSyncingDB();
-                        if (!(await this.doesTableExistInDB(syncingDBreference, property))) {
-                            this.syncingDB = await syncingDBreference.changeSchemaInstance(syncingDBreference, { [property]: DATABASE_TABLES_SCHEMA_MAPPER[CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME] });
-                            syncingDBreference = this.syncingDB;
-                        }
-
-                        // Ustvarimo Syncing entryje
-                        for (let syncItem of itemsToSyncAsArray) {
-                            // property === is supposed to be sync table(entity) name
-                            const syncingEntry: SyncingEntryI = createSyncingEntry(syncItem.localUUID, mapEntityToRequestUuid[property], 0, SyncingObjectStatus.in_sync, new Date(), syncItem);
-                            await syncingDBreference.table(property).put(syncingEntry, syncItem.localUUID);
-                        }
 
                         // Nastavimo sync entryje na in_sync
                         await itemsToSync.modify((obj: SyncChamberRecordStructure) => {
@@ -519,7 +494,6 @@ export class SyncEntityClean {
      */
     async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SyncChamberRecordStructure) {
         // async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SynchronizationSyncEntityDecodedRecord) {
-        // if succeess cOMPLETE -> remove duplicatred entry from syncingDB and set entry in syncDB to SYNCED
 
         const syncEntityResponseInstance = classTransformer.plainToInstance(SyncEntityResponse, success);
 
@@ -598,13 +572,8 @@ export class SyncEntityClean {
         );
         /**
          * Potrebno je ponastaviti podatke:
-         *  -   izbrisimo podatek iz syncing
          *  -   preverimo ali imamo TEMP, ce ja, shranimo to kar je v TEMP v SYNC in nastavimo na pending_sync
          */
-        const syncingDB = await this.getSyncingDB();
-        if (await this.doesTableExistInDB(syncingDB, collectionName)) {
-            await (await this.getSyncingDB()).table(collectionName).delete(objectUuid);
-        }
 
         // const tempDB = await this.getSyncConflictDB(); // To je pomojem napaka in mora biti dejansko getTempDB()
         const tempDB = await this.getTempDB();
@@ -685,7 +654,6 @@ export class SyncEntityClean {
             dataToInsert.lastModified = beLastModified;
             await (await this.getSyncDB()).table(collectionName).put(dataToInsert, objectUuid);
         }
-        await (await this.getSyncingDB()).table(collectionName).where({ 'objectUuid': objectUuid }).delete();
     }
 
     async doesTableExistInSyncDB(syncTableName: string): Promise<boolean> {
@@ -763,7 +731,6 @@ export class SyncEntityClean {
         // Ko bo pa poslan RETRY, syncJob za request ne bo obstajal in SYNC item se bo vrnil v `pending_sync`.
         if (error.code === HttpErrorResponseEnum.ERR_NETWORK) {
             // await delay(3000);
-            this.syncingDB!.table(entityName).where({ 'objectUuid': objectUuid }).delete(); // Vedno je lahko le en entry za isti UUID, zato ne rabimo dodatnega filtriranja
             // commented out below line on 25th of August -> swithing to real retry logic
             // await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => { obj.objectStatus = ChamberSyncObjectStatus.pending_sync });
             await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
@@ -776,7 +743,6 @@ export class SyncEntityClean {
             //await this.timeoutFunc({type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: 'Predolga zahteva (timeout)'} as SyncLibraryNotification, 10);
 
         } else if (error.code === SynchronizationSyncStatus.ECONNABORTED) {
-            // const valueFromSyncingDB = await this.syncingDB?.table(entityName).where({ 'objectUuid': objectUuid }).filter((item: SyncingEntryI) => item.retries < 10)?.modify((item: SyncingEntryI) => item.status = SyncingObjectStatus.pending_retry);  // THIS SHOULD EXIST - since we do not proceed to send to BE without creating data in syncingDB
             await (await this.getSyncDB()).table(entityName).where({'localUUID': objectUuid}).modify((obj: SyncChamberRecordStructure) => {
                 obj.objectStatus = ChamberSyncObjectStatus.pending_retry;
                 obj.lastRequestUuid = requestUuid;

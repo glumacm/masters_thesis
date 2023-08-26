@@ -1,12 +1,7 @@
 import * as Comlink from 'comlink';
 import { CONFIGURATION_CONSTANTS, DATABASE_TABLES_MAPPER, OBJECT_NAME_TO_PATH_MAPPER} from '../../configuration';
-import { RetryWorkerResponseStatus, ServerRetryEntityStatus } from '../../enums/retry.enum';
-import { RetryManagementWorkerData } from '../../interfaces/retry-sync.interfaces';
 import { AppDB } from '../../services/db';
 import { console_log_with_style, CONSOLE_STYLE, CustomConsoleOutput } from '../../utilities/console-style';
-import { DeferredPromise } from '../../utilities/deferred';
-import { RetryEntryI, SyncingEntryI, SyncingObjectStatus } from '../retry/utilities';
-import { RetryWorker } from './retry.worker';
 import { Table } from 'dexie';
 import { ChamberSyncObjectStatus, SyncChamberRecordStructure } from '../../interfaces/sync-storage.interfaces';
 import { findPendingRetryEntries, findPendingRetryItemByRequestUuid } from '../../utilities/storage-utilities';
@@ -23,8 +18,6 @@ import { SyncLibAutoMerge } from '../../services/automerge-service';
 export class RetryManagement {
     private debug_prefix = 'RetryManagement'
 
-    private retryDB: AppDB | undefined;
-    private syncingDB: AppDB | undefined;
     private syncDB: AppDB | undefined;
     private tempDB: AppDB | undefined;
     private evaluationInterval: any;
@@ -190,15 +183,6 @@ export class RetryManagement {
         this.consoleOutput.output(`#processErrorRetryResponse  : `, error)
     }
 
-    async addNewEntry(objectName: string, data: any) {
-        // Add item to retry database in collection: <objectName>
-        if (this.retryDB?.tables.find((table) => CONFIGURATION_CONSTANTS.SYNC_RETRY_DB_PREFIX_STRING + objectName == table.name)) {
-            await this.retryDB?.table(CONFIGURATION_CONSTANTS.SYNC_RETRY_DB_PREFIX_STRING + objectName).add(data);
-            console_log_with_style(`${this.debug_prefix} - Added data to retryDB in collection: ${objectName}`, CONSOLE_STYLE.magenta_and_white, data, 3);
-        }
-
-    }
-
     public terminateThread() { }
 
     public closeReEvaluationInterval() {
@@ -206,15 +190,9 @@ export class RetryManagement {
     }
 
     public async finishInit() {
-        this.retryDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_RETRY_SYNC_DATABASE_NAME, DATABASE_TABLES_MAPPER);
-        this.syncingDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNCING_REFACTORED_DATABASE_NAME, DATABASE_TABLES_MAPPER);
-        // this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
         await this.finishSyncDBSetup();
         await this.finishTempDBSetup();
 
-        await this.retryDB.finishSetup();
-        await this.syncingDB.finishSetup();
-        // await this.syncDB.finishSetup();
         this.isReady = true;
     }
 
@@ -229,7 +207,6 @@ export class RetryManagement {
     async finishSyncDBSetup() {
         this.syncDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
         await this.syncDB.finishSetup();
-        // this.syncingDBChangeSubscription = this.syncingChangeSubscription(this.syncingDB);
     }
 
     async getTempDB(): Promise<AppDB> {
@@ -243,7 +220,6 @@ export class RetryManagement {
     async finishTempDBSetup() {
         this.tempDB = new AppDB(CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME);
         await this.tempDB.finishSetup();
-        // this.syncingDBChangeSubscription = this.syncingChangeSubscription(this.syncingDB);
     }
 
 
