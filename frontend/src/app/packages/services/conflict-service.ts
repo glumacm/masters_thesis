@@ -30,6 +30,7 @@ export class ConflictService {
             record: record ?? undefined,
             objectStatus,
             lastModified: new Date(),
+            retries: 0,
         } as SyncChamberRecordStructure;
     }
 
@@ -57,6 +58,11 @@ export class ConflictService {
         if (!record.lastRequestUuid) {
             record.lastRequestUuid = null;
         }
+
+        if (!record.retries) {
+            record.retries = 0;
+        }
+        
         if (!record.changes) {
             record.changes = []
         }

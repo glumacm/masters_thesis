@@ -14,6 +14,7 @@ export interface SyncChamberRecordStructure {
   localUUID: string,
   lastModified?: Date | null | undefined,
   lastRequestUuid?: string | null | undefined, // S tem bom vedel kateri UUID requesta se je poslal ob zadnjem poskusu synca.
+  retries?: number | undefined | null,
   // objectStatus: syncChamberrecordObjectStatus
 }
 

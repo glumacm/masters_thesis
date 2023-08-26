@@ -17,4 +17,8 @@ export class ApiService {
     exportDatabaseToFileNew(fileAsJson: any, databaseName: string, browserName: string, simulationName: string) {
         return this.customAxios.post(`${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/store_fe_database_export/${databaseName}/${browserName}/${simulationName}`, fileAsJson);
     }
+
+    initiateTestingExamplesForSyncJob() {
+        return this.customAxios.get(`${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/initiate_sync_job_state_for_retry_testing`);
+    }
 }

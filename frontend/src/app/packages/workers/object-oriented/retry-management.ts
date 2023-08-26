@@ -1,5 +1,5 @@
 import * as Comlink from 'comlink';
-import { CONFIGURATION_CONSTANTS, DATABASE_TABLES_MAPPER, OBJECT_NAME_TO_PATH_MAPPER} from '../../configuration';
+import { CONFIGURATION_CONSTANTS, OBJECT_NAME_TO_PATH_MAPPER } from '../../configuration';
 import { AppDB } from '../../services/db';
 import { console_log_with_style, CONSOLE_STYLE, CustomConsoleOutput } from '../../utilities/console-style';
 import { Table } from 'dexie';
@@ -64,7 +64,9 @@ export class RetryManagement {
     }
 
     async evaluationIntervalCalback() {
-        clearInterval(this.evaluationInterval);
+        clearInterval(this.evaluationInterval); // TODO: Odstrani kasneje to, ker to povzroci, da se interval izvede le enkrat
+        // Ker me skrbi, da bi kaksen interval se zacel preden se prejsnji zakljuci. ChatGPT pravi, da to naj ne bi bilo mogoce.
+        // TODO: ce bo prislo do cudnega vedenja retry intervala, je mogoce resitev uporaba `isEvaluationRunning`.
         if (this.isEvaluationRunning) {
             return;
         }
@@ -113,7 +115,6 @@ export class RetryManagement {
 
         const responseData = plainToInstance(SyncRequestStatusResponse, response.data);
 
-        const itemsExist = responseData?.listOfRequestsStatuses?.length > 0;
         const syncTable = await this.getSyncDB();
         const tempTable: AppDB = await this.getTempDB();
         const convertedEntityName = ((pathToSimpleNameMapper(OBJECT_NAME_TO_PATH_MAPPER) as any)[responseData.entityName]);
@@ -128,7 +129,7 @@ export class RetryManagement {
             );
             return;
         }
-        
+
         /**
          * VELIK TODO 1:
          * Potrebno bo dodati kodo in upati, da bo delovalo brez tezkih problemov, ki bo omogocila, da
@@ -137,7 +138,7 @@ export class RetryManagement {
         for (let item of responseData.listOfRequestsStatuses) {
             const itemFromSync = await findPendingRetryItemByRequestUuid(syncTable, item.uuid, convertedEntityName)!;
             if (!itemFromSync) {
-                await  this.sendNewEventNotification(  // tako bomo vsaj zaznali napako v izpisu (ce smo naroceni na obvestila)
+                await this.sendNewEventNotification(  // tako bomo vsaj zaznali napako v izpisu (ce smo naroceni na obvestila)
                     {
                         createdAt: new Date(),
                         type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
@@ -148,19 +149,32 @@ export class RetryManagement {
             }
             // OPOZORILO: Nujno moramo preveriti ali temp tabela obstaja preden preverimo za TEMP podatek
             const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(itemFromSync.localUUID) : null;
-            if (item.status === SyncRequestStatusEnum.FINISHED) {
+            
+            if (item.status === SyncRequestStatusEnum.IN_PROGRESS) {
                 await syncTable.table(convertedEntityName)
                     .filter((obj: SyncChamberRecordStructure) => obj.localUUID === itemFromSync.localUUID)
                     .modify(
-                        (obj: SyncChamberRecordStructure) => {
-                            obj.objectStatus = ChamberSyncObjectStatus.synced;
-                            obj.lastRequestUuid = null;
-                            if (tempEntry) {
-                                obj.changes = tempEntry.changes;
-                                obj.lastModified = tempEntry.lastModified;
-                                obj.record = tempEntry.record;
-                            }
-                        }
+                        (obj: SyncChamberRecordStructure) => {obj.retries = obj.retries ? obj.retries+1 : 1}
+                    );
+                await this.sendNewEventNotification(
+                    plainToInstance(SyncLibraryNotification, {
+                        createdAt: new Date(),
+                        type: SyncLibraryNotificationEnum.SYNC_ITEM_STILL_IN_PROGRESS,
+                        message: `Sync object z uuid: ${itemFromSync.localUUID} se vedno ni zakljucen na zalednem sistemu`,
+                    })
+                );
+            } else {
+                let status = ChamberSyncObjectStatus.pending_sync;
+
+                const parametersForSyncedStatus = item.status === SyncRequestStatusEnum.FINISHED || item.status === SyncRequestStatusEnum.SUCCESS;
+                if (parametersForSyncedStatus) {
+                    status = ChamberSyncObjectStatus.synced;
+                }
+
+                await syncTable.table(convertedEntityName)
+                    .filter((obj: SyncChamberRecordStructure) => obj.localUUID === itemFromSync.localUUID)
+                    .modify(
+                        (obj: SyncChamberRecordStructure) => this.unlockSyncEntryFromRetry(obj, tempEntry, status)
                     );
                 if (tempEntry) {
                     await tempTable.table(convertedEntityName).delete(itemFromSync.localUUID);
@@ -176,6 +190,25 @@ export class RetryManagement {
         }
         return;
 
+    }
+
+    unlockSyncEntryFromRetry(syncItem: SyncChamberRecordStructure, tempEntry: SyncChamberRecordStructure | null | undefined, status: ChamberSyncObjectStatus) {
+        syncItem.objectStatus = status;
+        syncItem.lastRequestUuid = null;
+        /**
+         * // ker to so primeri, ko smo se resili retryja 
+         * 
+         * IDEJA za kasneje: mogoce bi lahko pustil pri miru vrednost za 
+         * specificne statuse in na podlagi tega kasneje ugotovil kateri 
+         * statusi povzrocajo ciklanje istega synca.
+         */
+        syncItem.retries = 0; 
+        if (tempEntry) {
+            syncItem.changes = tempEntry.changes;
+            syncItem.lastModified = tempEntry.lastModified;
+            syncItem.record = tempEntry.record;
+            syncItem.objectStatus = ChamberSyncObjectStatus.pending_sync; // should immediatelly be recognised as pending_sync
+        }
     }
 
     async processErrorRetryResponse(error: any) {

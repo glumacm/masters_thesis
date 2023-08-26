@@ -15,6 +15,7 @@ export function createEmptySyncEntry(
         record: record ?? undefined,
         objectStatus,
         lastRequestUuid: undefined,
+        retries: 0,
     } as SyncChamberRecordStructure;
 }
 

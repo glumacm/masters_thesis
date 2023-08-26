@@ -61,7 +61,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
 
   syncTestEntityBackup = syncTestEntityBackup;
   tempTestEntityBackup = tempTestEntityBackup;
-  
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -311,6 +311,16 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       console.error('' + error);
     }
     db.close();
+  }
+
+  public async initiateTestingExamplesForSyncJob() {
+    try {
+      const apiService = new ApiService(false, undefined);
+      const initResponse = await apiService.initiateTestingExamplesForSyncJob().then();
+      this.consoleOutput.output(`#initiateSyncjobDatabaseOnBE response is:  `, initResponse.data);
+    } catch (error) {
+      this.consoleOutput.output(`#initiateSyncjobDatabaseOnBE error is:  `, error);
+    }
   }
 
   public async importTestDatabase(databaseName: string = 'sync', dataToImport: any) {
