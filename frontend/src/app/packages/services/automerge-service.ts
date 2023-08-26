@@ -30,6 +30,7 @@ export class SyncLibAutoMerge {
     constructor() {
         this.conflictService = new ConflictService();
         this.consoleOutput = new CustomConsoleOutput(`SyncLibMerge`, CONSOLE_STYLE.sync_lib_main);
+        this.consoleOutput.closeGroup();
     }
 
     /**
