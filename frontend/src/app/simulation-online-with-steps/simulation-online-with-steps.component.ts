@@ -17,6 +17,7 @@ import { ApiService } from '../services/api-service';
 import { BehaviorSubject, Subscription, first } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import syncTestEntityBackup from '../packages/mock-data/26-08-2023/sync_testEntity_backup';
+import tempTestEntityBackup from '../packages/mock-data/26-08-2023/temp_testEntity_backup';
 
 
 @Component({
@@ -58,6 +59,9 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
 
   eventsSubscription: Subscription | undefined;
 
+  syncTestEntityBackup = syncTestEntityBackup;
+  tempTestEntityBackup = tempTestEntityBackup;
+  
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -285,9 +289,17 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     // db.close();
   }
 
-  public async exportDatabase() {
+  public async exportDatabase(databaseName: string = 'sync') {
     // const db = new AppDB('sync');
-    const db = await this.syncLib.getSyncDB();
+    let db;
+    if (databaseName == 'sync_conflict') {
+      db = await this.syncLib.getConflictDB();
+    } else if (databaseName == 'sync_temp') {
+      db = await this.syncLib.getTempDB();
+    } else {
+      db = await this.syncLib.getSyncDB();
+    }
+    
     await db.finishSetup();
 
     try {
@@ -301,21 +313,28 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     db.close();
   }
 
-  public async importTestEntitySyncDatabase() {
-    let dbSync;
+  public async importTestDatabase(databaseName: string = 'sync', dataToImport: any) {
+    let db;
     // import test data
-    
-    if (await Dexie.exists(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME)) {
-      await AppDB.delete(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
+
+    if (databaseName === CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME) {
+      if (await Dexie.exists(CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME)) {
+        await AppDB.delete(CONFIGURATION_CONSTANTS.BROWSER_SYNC_TEMP_DATABASE_NAME);
+      }
+    } else {
+      if (await Dexie.exists(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME)) {
+        await AppDB.delete(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
+      }
     }
+    
+    
     try {
-      dbSync = new AppDB('sync');
-      dbSync.version(1).stores({ 'testEntity': DATABASE_TABLES_SCHEMA_MAPPER['sync'] });
-      syncTestEntityBackup
-      const fileFromJSON = new Blob([JSON.stringify(syncTestEntityBackup)],{type:'application/json'});
-      await dbSync.import(fileFromJSON);
-      await dbSync.finishSetup();
-      dbSync.close();
+      db = new AppDB(databaseName);
+      db.version(1).stores({ 'testEntity': DATABASE_TABLES_SCHEMA_MAPPER[databaseName] });
+      const fileFromJSON = new Blob([JSON.stringify(dataToImport)],{type:'application/json'});
+      await db.import(fileFromJSON);
+      await db.finishSetup();
+      db.close();
     } finally {}
   }
 

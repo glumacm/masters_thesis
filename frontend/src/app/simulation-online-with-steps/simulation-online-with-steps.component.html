@@ -100,7 +100,11 @@
     </div>
 
     <div class="col-12">
-        <button id="exportButton" (click)="exportDatabase()">Export sync data</button>
+        <button id="exportDatabaseToBE" (click)="exportDatabase('sync_temp')">Export temp data</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="exportDatabase('sync')">Export sync data</button>
     </div>
 
     <div class="col-12">
@@ -108,7 +112,11 @@
     </div>
 
     <div class="col-12">
-        <button id="exportButton" (click)="importTestEntitySyncDatabase()">Import sync-testEntity table from 26.8.2023</button>
+        <button id="exportButton" (click)="importTestDatabase('sync', syncTestEntityBackup)">Import sync-testEntity table from 26.8.2023</button>
+    </div>
+
+    <div class="col-12">
+        <button id="exportButton" (click)="importTestDatabase('sync_temp', tempTestEntityBackup)">Import temp-testEntity table from 26.8.2023</button>
     </div>
 
     <div class="col-12">
