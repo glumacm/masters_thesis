@@ -3,6 +3,7 @@
 namespace App\EventListener;
 
 //use App\Entity\Product;
+use App\Entity\SyncJob;
 use App\Enum\SyncDoctrineEventActionEnum;
 use App\Service\MergeService;
 use App\Service\PushService;
@@ -57,9 +58,19 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
     {
         // $entity = $args->getObject();
 
-        $entity_name = (new \ReflectionClass($args->getObject()))->getShortName();
-        $this->push_service->logData('A TOOOOOOOOO DELLLLLLLLAAAAAAAAA ??????????????????????/????');
-        $this->push_service->logData(sprintf('My Way is my decision:  %s', $this->agent_id));
+        $reflection_class = (new \ReflectionClass($args->getObject()));
+        $entity_name = $reflection_class->getShortName();
+
+        /**
+         * We omit SSE in case SyncJob entity is added + would be better to do this in more
+         * dynamic way. e.g. to add some table configuration which entities should be used
+         * for SSEs.
+         */
+        if (!$this->push_service->isEntityUsedForSynchronization($reflection_class->getName())) {
+//            Example of logging
+//            $this->push_service->logData(sprintf("Will not send SEE due to entity: %s not being part of sync process. ", $reflection_class->getName()));
+            return;
+        }
 
         $serializer     = $this->merge_service->get_serializer();
         $published_uuid = $this->push_service->publishUpdate(
@@ -72,19 +83,26 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
             sprintf('%s/%s', PushService::BASE_TOPIC, 'entities')
         );
 
-        // if this listener only applies to certain entity types,
-        // add some code to check the entity type as early as possible
-        //        if (!$entity instanceof Product) {
-        //            return;
-        //        }
-
-        $entityManager = $args->getObjectManager();
+//        $entityManager = $args->getObjectManager();
     }
 
     public function postPersist(LifecycleEventArgs $args): void
     {
         // Ocitno PERSIST pomeni CREATE v Doctrine contextu
-        $entity_name = (new \ReflectionClass($args->getObject()))->getShortName();
+        $reflection_class = (new \ReflectionClass($args->getObject()));
+        $entity_name = $reflection_class->getShortName();
+
+        /**
+         * We omit SSE in case SyncJob entity is added + would be better to do this in more
+         * dynamic way. e.g. to add some table configuration which entities should be used
+         * for SSEs.
+         */
+        if (!$this->push_service->isEntityUsedForSynchronization($reflection_class->getName())) {
+//            Example of logging
+//            $this->push_service->logData(sprintf("Will not send SEE due to entity: %s not being part of sync process. ", $reflection_class->getName()));
+            return;
+        }
+
         $serializer     = $this->merge_service->get_serializer();
         $published_uuid = $this->push_service->publishUpdate(
             $serializer->serialize(

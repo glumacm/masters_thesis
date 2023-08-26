@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\TestEntity;
 use App\Enum\SyncDoctrineEventActionEnum;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
@@ -12,7 +13,11 @@ class PushService {
     const BASE_TOPIC = 'https://example.com';
     const TOPIC= self::BASE_TOPIC . '/books';
 
+    const ENTITIES_USED_FOR_SYNC = array(
+        TestEntity::class,
+    );
     private $connection;
+
 
     /**
      * @var HubInterface
@@ -72,5 +77,9 @@ class PushService {
             'objectData' => $object_data,
             'action' => $eventAction->name,
         ];
+    }
+
+    public function isEntityUsedForSynchronization(string $reflectionClassName): bool {
+        return in_array($reflectionClassName, self::ENTITIES_USED_FOR_SYNC);
     }
 }
