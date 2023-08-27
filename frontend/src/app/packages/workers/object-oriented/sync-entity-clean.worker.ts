@@ -568,13 +568,15 @@ export class SyncEntityClean {
         );
     }
 
-    async syncStatusWithErrorsLogicCustomAutoMerge(objectUuid: string, collectionName: string, status: SyncLibraryNotificationEnum): Promise<any> {
-        await this.sendNewEventNotification(
-            {
-                type: status,
-                message: `Cannot synchronise object: ${objectUuid} for entity: ${collectionName}` // Predlagam, da za te primere poenostavimo podatke v isto stanje, da se ponovno poskusi posyncati. Vendar paziti je potrebno, da ce bi imeli ogromno takih primerov, bi lahko zasicilo hitrost knjiznice...
-            } as SyncLibraryNotification
-        );
+    async syncStatusWithErrorsLogicCustomAutoMerge(objectUuid: string, collectionName: string, status: SyncLibraryNotificationEnum, showGenericNotification: boolean = true): Promise<any> {
+        if (showGenericNotification) {
+            await this.sendNewEventNotification(
+                {
+                    type: status,
+                    message: `Cannot synchronise object: ${objectUuid} for entity: ${collectionName}` // Predlagam, da za te primere poenostavimo podatke v isto stanje, da se ponovno poskusi posyncati. Vendar paziti je potrebno, da ce bi imeli ogromno takih primerov, bi lahko zasicilo hitrost knjiznice...
+                } as SyncLibraryNotification
+            );
+        }
         /**
          * Potrebno je ponastaviti podatke:
          *  -   preverimo ali imamo TEMP, ce ja, shranimo to kar je v TEMP v SYNC in nastavimo na pending_sync
@@ -584,9 +586,14 @@ export class SyncEntityClean {
         const tempDB = await this.getTempDB();
         let syncEntry: SyncChamberRecordStructure = await (await this.getSyncDB()).table(collectionName).get(objectUuid);
         syncEntry.objectStatus = ChamberSyncObjectStatus.pending_sync;
+        syncEntry.lastRequestUuid = null;
+        syncEntry.retries = 0;
         const tempEntry: SyncChamberRecordStructure = await this.doesEntryExistInDB(tempDB, collectionName, objectUuid);
         if (tempEntry) {
             tempEntry.objectStatus = ChamberSyncObjectStatus.pending_sync;
+            tempEntry.lastModified = syncEntry.lastModified;
+            tempEntry.lastRequestUuid = null;
+            tempEntry.retries = 0;
             syncEntry = tempEntry;
             await (await this.getTempDB()).table(collectionName).delete(objectUuid);
         }
@@ -755,11 +762,13 @@ export class SyncEntityClean {
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`}), 10);
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.ITEM_IS_PENDING_RETRY, message: `Set item with uuid: ${objectUuid} to status:${ChamberSyncObjectStatus.pending_retry}`}), 10);
         } else if ((error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) || (error.code === SynchronizationSyncStatus.CONCURRENCY_PROBLEM)) {
+            // NAPAKA: Moramo preveriti tudi ali imamo TEMP PODATKE!!!!
             // To je napaka, ki je nismo predpostavili/odkrili med razvojem in zato jo tukaj genericno zajamemo - resetiramo podatke
-            await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
-                obj.objectStatus = ChamberSyncObjectStatus.pending_sync;
-                obj.lastRequestUuid = null;
-            });
+            await this.syncStatusWithErrorsLogicCustomAutoMerge(objectUuid, entityName, SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM, false); // To bo pravilno nastavilo podatek na pending_sync (ker pogledat tudi za potencialni TEMP podatek)
+            // await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
+            //     obj.objectStatus = ChamberSyncObjectStatus.pending_sync;
+            //     obj.lastRequestUuid = null;
+            // });
             const syncNotification: SyncLibraryNotification = classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.UNKNOWN_ERROR, message: `Unrecognised error from BE.`});
             if (error.code === SynchronizationSyncStatus.CONCURRENCY_PROBLEM) {
                 syncNotification.type = SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM;
