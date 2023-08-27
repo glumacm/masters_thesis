@@ -14,6 +14,7 @@ import { SyncLibraryNotificationEnum } from '../../enums/event/sync-library-noti
 import { pathToSimpleNameMapper } from '../../utilities/config-utilities';
 import { SyncRequestStatusEnum } from '../../enums/sync/sync-request-status.enum';
 import { SyncLibAutoMerge } from '../../services/automerge-service';
+import { StopwatchService } from '../../services/stopwatch-service';
 
 export class RetryManagement {
     private debug_prefix = 'RetryManagement'
@@ -70,12 +71,15 @@ export class RetryManagement {
         if (this.isEvaluationRunning) {
             return;
         }
+        const stopwatch = new StopwatchService(true);
+
 
         this.isEvaluationRunning = true;
         this.isEvaluationRunning = false;
 
         // 1. poisci ustrezne podatke iz shrambe
         const tables: Table[] | undefined = this.syncDB?.tables;
+        stopwatch.createIntermediateTime();
         const mappedUuidsToEntities = await findPendingRetryEntries((await this.syncDB?.tables ?? []), (obj: SyncChamberRecordStructure) => obj.lastRequestUuid);
         for (let property of Object.keys(mappedUuidsToEntities)) {
             // 1.a ignore empty list entries
@@ -97,6 +101,8 @@ export class RetryManagement {
             }
 
         }
+        stopwatch.stop();
+        this.consoleOutput.output(`This is estimated time of retry proces: `, stopwatch.showTime());
 
     }
 

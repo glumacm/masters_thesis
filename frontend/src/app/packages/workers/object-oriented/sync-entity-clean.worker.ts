@@ -34,6 +34,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { NetworkStatusEnum } from '../../interfaces/network-status.interfaces';
 import { storeNewObject, StoreNewObjectResult } from '../../utilities/storage-utilities';
 import { SynchronizationLibraryBase } from '../../sync-lib-base';
+import { StopwatchService } from '../../services/stopwatch-service';
 
 // type ResponseTest<T> = Promise<AxiosResponse<|SyncEntityResponse2I<T>>>;
 export class SyncEntityClean {
@@ -329,6 +330,7 @@ export class SyncEntityClean {
     }
 
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
+        const batchSyncStopwatch = new StopwatchService(true);
         let initialTimer = 200;
         const timerSteper = 100;
         this.syncInProgress = true;
@@ -410,6 +412,8 @@ export class SyncEntityClean {
         finally {
             this.syncInProgress = false;
         }
+        batchSyncStopwatch.stop();
+        this.consoleOutput.output(`Batch sync process excetuted in time: ${batchSyncStopwatch.showTime()} [ms]`);
         await timeoutFunction({
             type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
             message: 'Batch sync je zakljucen',
@@ -890,6 +894,7 @@ export class SyncEntityClean {
     }
 
     public async changeNetworkStatus(newStatus: NetworkStatusEnum) {
+        this.consoleOutput.output(`And i would give up forever`);
         this.networkStatus = newStatus;
         if (newStatus === NetworkStatusEnum.OFFLINE) {
             // close source
