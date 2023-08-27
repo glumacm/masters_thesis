@@ -402,29 +402,9 @@ class MergeService
                 $merge_resolution             = new MergeResolutionCalculation();
                 $merge_resolution->conflicted = array();
                 switch ($merge_policy) {
-                    case MergeResolutionEnum::NO_RESTRICTIONS:
-                        $be_object_array[$changed_field] = $changed_value; # what about special type values e.g. DATETIME???
-                        $merge_resolution->merged        = $be_object_array;
-                        return $merge_resolution;
-                    case MergeResolutionEnum::NEWER_CHANGES:
-//                        if ($be_last_modified < $fe_last_modified) {
-//                            $be_object_array[$changed_field] = $changed_value;
-//                        }
-//                        $merge_resolution->merged = $be_object_array;
-//                        return $merge_resolution;
-//                        break;
-                    case MergeResolutionEnum::OLDER_CHANGES:
-//                        if ($be_last_modified > $fe_last_modified) {
-//                            $be_object_array[$changed_field] = $changed_value;
-//                        }
-//                        $merge_resolution->merged = $be_object_array;
-                        # Add new change without questions -> NO_RESTRICTIONS
-                        # If changed_field does not yet exist on be_object_array, then it will be added (but be careful - if this property is not defind on CLASS , then this will break!)
-
-                        # NEWER_CHANGES | OLDER_CHANGES
-                        # Kako bomo vedeli katera sprememba je nova in katera stara?
-                        # zaenkrat naredimo isto kot NO_RESTRICTIONS:
-                        if ($fe_last_modified != $be_last_modified) {
+                    case MergeResolutionEnum::OLDER_CHANGES: // Dajmo na to raje gledati kot: v primeru starih sprememb, ne dovoli spremembe (je konflikt)
+                        # (A SE VELJA)?:  If changed_field does not yet exist on be_object_array, then it will be added (but be careful - if this property is not defind on CLASS , then this will break!)
+                        if ($fe_last_modified < $be_last_modified) {
                             return $this->create_conflict_data(be_object_array: $be_object_array, changed_field: $changed_field, changed_value: $changed_value);
                         }
                         $be_object_array[$changed_field] = $changed_value; # what about special type values e.g. DATETIME???
@@ -432,22 +412,14 @@ class MergeService
                         return $merge_resolution;
                     case MergeResolutionEnum::USER_INTERACTION_NEEDED:
                         # this is considered A CONFLICT!
-                        $merge_resolution->merged      = $be_object_array;
-                        $conflicted_change             = new ConflictResolutionCalculation();
-                        $conflicted_change->field_name = $changed_field;
-                        $conflicted_change->value      = $changed_value;
-                        $conflicted_change->conflict_id = Uuid::uuid4();
-                        $conflicted_change->datetime   = new \DateTime();
-                        $merge_resolution->conflicted  = array(
-                            $conflicted_change
-                        );
-                        return $merge_resolution;
+                        return $this->create_conflict_data(be_object_array: $be_object_array, changed_field: $changed_field, changed_value: $changed_value);
+                    case MergeResolutionEnum::NO_RESTRICTIONS:
                     case MergeResolutionEnum::DEFAULT:
                     case MergeResolutionEnum::NONE:
                     default:
-                        # NONE == NO CHANGE!!!!
-                        # What is DEFAULT???
-                        $merge_resolution->merged = $be_object_array;
+                        # Added logic that will by default or by design allow any change !!!
+                        $be_object_array[$changed_field] = $changed_value; # what about special type values e.g. DATETIME???
+                        $merge_resolution->merged        = $be_object_array;
                         return $merge_resolution;
                 }
             };
