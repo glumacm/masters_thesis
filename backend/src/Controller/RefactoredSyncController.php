@@ -283,15 +283,27 @@ class RefactoredSyncController extends AbstractController
 
         $syncRecords = array(); // $sync_service->sync_single_record($entity_name, )
         try {
+            $success_status = false;
+            $fail_status = false;
             foreach ($batch_data as $batch_item) {
                 /**
                  * $batch_item -> PREDPOSTAVLJAMO, DA BOMO VEDNO DOBILI NOTER `lastModified` podatek!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                  */
                 $syncData = $sync_service->sync_single_record($entity_name, $batch_item);
+
                 if ($syncData->status != SyncEntityStatusEnum::SUCCESS) {
-                    $data_to_return->status = SyncBatchSingleEntityStatusEnum::PARTIAL_SUCESS->name;
+                    $fail_status = true;
+                } else {
+                    $success_status = true;
                 }
                 $syncRecords[] = $syncData;
+            }
+
+            $data_to_return->status = SyncBatchSingleEntityStatusEnum::COMPLETE_SUCCESS->name;
+            if ($success_status and $fail_status) {
+                $data_to_return->status = SyncBatchSingleEntityStatusEnum::PARTIAL_SUCESS->name;
+            } else if ($fail_status) {
+                $data_to_return->status = SyncBatchSingleEntityStatusEnum::COMPLETE_FAIL->name;
             }
         }catch (\Exception $exception) {
             // To je bilo potrebno narediti za CONCURRENCYJA... namrec istocasno se je poskusalo dodati objekte z istimi UUID-ji
@@ -299,12 +311,13 @@ class RefactoredSyncController extends AbstractController
             // sploh ne zazna napake....
             $syncRecords = [];
             foreach ($batch_data as $batch_item) {
-                $data_to_return = new SyncEntityResponse();
-                $data_to_return->status = SyncEntityStatusEnum::CONCURRENCY_PROBLEM->name;
-                $data_to_return->error = $exception->getMessage();
-                $data_to_return->record_uuid = $batch_item->getUuid();
-                $syncRecords[] = $data_to_return;
+                $sync_record = new SyncEntityResponse();
+                $sync_record->status = SyncEntityStatusEnum::CONCURRENCY_PROBLEM->name;
+                $sync_record->error = $exception->getMessage();
+                $sync_record->record_uuid = $batch_item->getUuid();
+                $syncRecords[] = $sync_record;
             }
+            $data_to_return->status = SyncBatchSingleEntityStatusEnum::CONCURRENCY_PROBLEM->name;
         }
 
         $sync_job->setStatus(SyncRequestStatusEnum::FINISHED->name);
