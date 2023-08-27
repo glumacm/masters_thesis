@@ -149,12 +149,12 @@ export class RetryManagement {
             }
             // OPOZORILO: Nujno moramo preveriti ali temp tabela obstaja preden preverimo za TEMP podatek
             const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(itemFromSync.localUUID) : null;
-            
+
             if (item.status === SyncRequestStatusEnum.IN_PROGRESS) {
                 await syncTable.table(convertedEntityName)
                     .filter((obj: SyncChamberRecordStructure) => obj.localUUID === itemFromSync.localUUID)
                     .modify(
-                        (obj: SyncChamberRecordStructure) => {obj.retries = obj.retries ? obj.retries+1 : 1}
+                        (obj: SyncChamberRecordStructure) => { obj.retries = obj.retries ? obj.retries + 1 : 1 }
                     );
                 await this.sendNewEventNotification(
                     plainToInstance(SyncLibraryNotification, {
@@ -202,7 +202,7 @@ export class RetryManagement {
          * specificne statuse in na podlagi tega kasneje ugotovil kateri 
          * statusi povzrocajo ciklanje istega synca.
          */
-        syncItem.retries = 0; 
+        syncItem.retries = 0;
         if (tempEntry) {
             syncItem.changes = tempEntry.changes;
             syncItem.lastModified = tempEntry.lastModified;
@@ -212,8 +212,21 @@ export class RetryManagement {
     }
 
     async processErrorRetryResponse(error: any) {
-        // TODO: Implementacija za error use-case
-        this.consoleOutput.output(`#processErrorRetryResponse  : `, error)
+        /**
+         * Trenutno pustilo samo obvestilo, ker mislim, da v primeru kaksne napake na BE ne povzroci nobene skode na FE
+         * podatkih. Zato imamo obvestilo, da bom med uporabo aplikacije zaznal ali kdaj pride do napake
+         */
+        await this.sendNewEventNotification(
+            plainToInstance(
+                SyncLibraryNotification,
+                {
+                    createdAt: new Date(),
+                    error: error,
+                    type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
+                    message: 'Med izvajanjem retry procesa je prislo do nepoznane napake'
+                }
+            )
+        );
     }
 
     public terminateThread() { }
