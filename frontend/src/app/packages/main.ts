@@ -208,6 +208,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
                     sendNewEventNotification: this.sendNewEventNotification,
                     notifyMainAboutDBChange: this.notifyMainAboutDBChange,
                     configuration: syncConfiguration,
+                    currentNetworkStatus: navigator.onLine,
 
                 }),
                 this.mockRequests,

@@ -252,6 +252,7 @@ export class SyncEntityClean {
         // ce hocem dobiti pravi podatek ven, moram uporabiti `await` ker drugace se podatek ne pridobi
         this.sendNewEventNotification = dependencies.sendNewEventNotification;
         this.notifyMainAboutDBChange = dependencies.notifyMainAboutDBChange;
+        this.networkStatus = dependencies.currentNetworkStatus ? NetworkStatusEnum.ONLINE : NetworkStatusEnum.OFFLINE;
         // this.configuration = dependencies.configuration;
     }
 
