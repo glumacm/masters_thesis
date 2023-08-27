@@ -448,6 +448,7 @@ export class SyncEntityClean {
             return;
         }
         switch (data.status) {
+            case SyncBatchSingleEntityStatusEnum.COMPLETE_FAIL:  // Zato ker vsebuje seznam vseh neuspesnih in posledicno imamo noter tudi statuse, ki jih `singleSyncProcessSuccess` lahko sprocesira
             case SyncBatchSingleEntityStatusEnum.COMPLETE_SUCCESS:
             case SyncBatchSingleEntityStatusEnum.PARTIAL_SUCESS:
                 for (let syncRecord of data.syncRecords) {
@@ -458,9 +459,8 @@ export class SyncEntityClean {
                     await this.singleSyncProcessSuccess(syncRecord, entityName, syncRecord.recordUuid, await (await this.getSyncDB()).table(entityName).get(syncRecord.recordUuid));
                 }
                 break;
-            
             case SyncBatchSingleEntityStatusEnum.CONCURRENCY_PROBLEM:
-                await this.processBatchSingleEntityErrorLogic(entityName, {}, uuidsToSync, requestUuid);
+                await this.processBatchSingleEntityErrorLogic(entityName, {code: SynchronizationSyncStatus.CONCURRENCY_PROBLEM}, uuidsToSync, requestUuid);
                 break;
             case SyncBatchSingleEntityStatusEnum.FATAL_ERROR:
             default:
@@ -754,13 +754,18 @@ export class SyncEntityClean {
             });
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.NETWORK_TIMEOUT, message: `Network timeout error.`}), 10);
             await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.ITEM_IS_PENDING_RETRY, message: `Set item with uuid: ${objectUuid} to status:${ChamberSyncObjectStatus.pending_retry}`}), 10);
-        } else if (error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) {
+        } else if ((error.code === HttpErrorResponseEnum.ERR_BAD_RESPONSE) || (error.code === SynchronizationSyncStatus.CONCURRENCY_PROBLEM)) {
             // To je napaka, ki je nismo predpostavili/odkrili med razvojem in zato jo tukaj genericno zajamemo - resetiramo podatke
             await (await this.getSyncDB()).table(entityName).where({ 'localUUID': objectUuid }).modify((obj: SyncChamberRecordStructure) => {
                 obj.objectStatus = ChamberSyncObjectStatus.pending_sync;
                 obj.lastRequestUuid = null;
             });
-            await this.timeoutFunc(classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.UNKNOWN_ERROR, message: `Unrecognised error from BE.`} as SyncLibraryNotification), 10);
+            const syncNotification: SyncLibraryNotification = classTransformer.plainToInstance(SyncLibraryNotification, {createdAt: new Date(), type: SyncLibraryNotificationEnum.UNKNOWN_ERROR, message: `Unrecognised error from BE.`});
+            if (error.code === SynchronizationSyncStatus.CONCURRENCY_PROBLEM) {
+                syncNotification.type = SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM;
+                syncNotification.message = `Med sinhronizacijo objekta z uuid: ${objectUuid} je prišlo do ${SyncLibraryNotificationEnum.CONCURRENCY_PROBLEM} napake.`;
+            }
+            await this.timeoutFunc(syncNotification, 10);
             return;
         }
     }

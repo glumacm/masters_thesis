@@ -6,6 +6,7 @@ export enum SynchronizationSyncStatus {
     ERR_BAD_RESPONSE='ERR_BAD_RESPONSE', // @deprecated this value in this enum should be DEPRECATED!
     ERR_NETWORK='ERR_NETWORK', // @deprecated this value in this enum should be DEPRECATED!
     NO_ACTION='NO_ACTION',
+    CONCURRENCY_PROBLEM='CONCURRENCY_PROBLEM',
 }
 
 export enum SynchronizationExceptionCode {
