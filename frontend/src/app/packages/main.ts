@@ -29,7 +29,7 @@ import { AxiosResponse } from "axios";
 import { EventSourcePolicyEnum } from "./enums/sync/event-source-policy-enum";
 import { v4 as uuidv4 } from 'uuid';
 import { SyncConfigurationI } from "./interfaces/sync-configuration.interfaces";
-import { StoreNewObjectResult, storeNewObject } from "./utilities/storage-utilities";
+import { StoreNewObjectResult, setInSyncObjectsToPendingSync, storeNewObject } from "./utilities/storage-utilities";
 import { SynchronizationLibraryBase } from "./sync-lib-base";
 
 export class SynchronizationLibrary extends SynchronizationLibraryBase {
@@ -167,6 +167,9 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         await this.dbSync.open();
         await this.dbSyncTemp.open();
         await this.dbSyncConflict.open();
+
+        // ponastavitev podatkov in_sync objektov na pending_retry
+        await setInSyncObjectsToPendingSync(await this.getSyncDB());
 
         // Now let's open thread for retry manager
         // convert both to Comlink style!!
