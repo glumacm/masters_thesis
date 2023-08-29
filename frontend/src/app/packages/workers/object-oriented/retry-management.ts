@@ -227,7 +227,7 @@ export class RetryManagement {
                 SyncLibraryNotification,
                 {
                     createdAt: new Date(),
-                    error: error,
+                    error: JSON.stringify(error),
                     type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
                     message: 'Med izvajanjem retry procesa je prislo do nepoznane napake'
                 }
