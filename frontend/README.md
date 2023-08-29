@@ -125,6 +125,8 @@ Ko sem v firefox-u dodal oba Caddy Local Authority certifikata, je potem URL del
 
 # Simulation
 
+npx mocha simulation/simulation-with-steps.spec.js
+
 ## Zahteve
 * pred zacetkom namesti JAVO v12 -> v12.0.2 (dostopno na: https://www.oracle.com/java/technologies/javase/jdk12-archive-downloads.html#license-lightbox)
 * dodaj `selenium-server-4.10.0.jar` datoteko v `/simulation` mapo -> dostopno tukaj: https://github.com/SeleniumHQ/selenium/releases/
@@ -139,6 +141,24 @@ To run selenium grid, download JAR file for selenium server and then run:
 
 To run current tests, run:
 `mocha simulation/seleniumSimulation.spec.js`
+
+V primeru da moramo dodati chrome, ki ima vecjo verzijo, kot je trenutni uradni stable version. Ga moramo prenesti iz:
+https://googlechromelabs.github.io/chrome-for-testing/
+
+Nato v mocha skripti popravimo pot do `Google Chrome for testing` aplikacije:
+```
+chromeOptions.setChromeBinaryPath('<potDo>/Google\ Chrome\ for\ testing.app/Contents/MacOS/Google\ Chrome\ for\ Testing');
+```
+
+Prav tako bo zelo verjetno potrebno pognati sledeci ukaz:
+```
+sudo xattr -cr  <potDo>/Google\ Chrome\ for\ testing.app>
+```
+
+Najbolj pomembno v trenutni verziji je bilo, da sem nastavil path preko `/etc/paths.d/`. Tam lahko definiram pot in ko popraivm tam pot, se bo takoj popravil PATH (ko restartamo terminal).
+
+Zelo je potrebno pazit, ker vsakic ko dobi chrome avtomatski update, se bo verzija nastavila na verzijo update-a, tudi ce v UI-ju tega ne vidimo.
+Zato je pomembno, da se dobi bodisi binaryje za specificno verzijo in potem vezemo chromedriver na to verzijo, ali pa vedno znova prenesemo ustrezno chromedriver verzijo (glede na trenutno verzijo Chrome brskalnika na racunalniku).
 
 
 
