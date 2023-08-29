@@ -267,6 +267,8 @@ class RefactoredSyncController extends AbstractController
             \Sentry\captureMessage('batch_sync_merging: Entity  ' . $entity_name . ' does not exist');
             $data_to_return->status = SyncBatchSingleEntityStatusEnum::FATAL_ERROR->name;
             $response->setContent($serializer->serialize($data_to_return, 'json'));
+            $sync_job->setStatus(SyncRequestStatusEnum::CANCELED->name);
+            $sync_job_repository->save($sync_job, flush: true);
             return $response;
 
         }
