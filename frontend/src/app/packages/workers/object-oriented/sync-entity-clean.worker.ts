@@ -297,7 +297,7 @@ export class SyncEntityClean {
     async initDatabases() {
 
         await this.finishSyncDBSetup(); // this creates instance for db and sets listener for never versions of the database
-        await this.finishSyncingDBSetup(); // this creates instance for db and sets listener for never versions of the database
+        // await this.finishSyncingDBSetup(); // this creates instance for db and sets listener for never versions of the database
         await this.finishTempDBSetup();
         await this.finishSyncConflictDBSetup();
         await this.startBatchSyncOnInterval();
