@@ -31,6 +31,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SyncConfigurationI } from "./interfaces/sync-configuration.interfaces";
 import { StoreNewObjectResult, setInSyncObjectsToPendingSync, storeNewObject } from "./utilities/storage-utilities";
 import { SynchronizationLibraryBase } from "./sync-lib-base";
+import { DataSizeService } from "./services/data-size-service";
 
 export class SynchronizationLibrary extends SynchronizationLibraryBase {
 
@@ -184,7 +185,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         const miliseconds = 1000;
         const timeInSeconds = 25;
         const timeInMinutes = 0
-        const sum = (miliseconds*60*timeInMinutes) + (miliseconds*timeInSeconds);
+        const sum = (miliseconds * 60 * timeInMinutes) + (miliseconds * timeInSeconds);
         if (CONFIGURATION_CONSTANTS.ALLOW_RETRY_PROCESS) {
             await this.retryMangementInstance.initiateEvaluationInterval(1120);
         }
@@ -329,7 +330,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         this.dbSync = storedObjectResult.syncDB;
         this.dbSyncTemp = storedObjectResult.tempDB;
         this.dbSyncConflict = storedObjectResult.conflictDB;
-        
+
         /**
          * Kratek opis:
          * Funkcija mora na podlagi podanega objekta in UUID-ja, popraviti objekt v bazi glede na UUID.
@@ -341,6 +342,16 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
          */
 
         return storedObjectResult.resultData;
+    }
+
+    public async calculateSyncObjectSizeCounts(calculationBytesDivider: number = DataSizeService.BYTES_DIVIDER): Promise<{totalObjectsSizeCount: number, totalSyncObjectsSizeCount: number, totalSyncSuccessObjectsSizeCount: number, totalRetryObjectsSizeCount: number}> {
+        const syncThreadCounts = await this.syncEntityInstance!.syncObjectSizeCounts(calculationBytesDivider);
+        return {
+            totalObjectsSizeCount: syncThreadCounts.syncObjectsCount + syncThreadCounts.syncSuccessObjectsCount, // TODO: + dodati bo potrebno retry count
+            totalSyncObjectsSizeCount: syncThreadCounts.syncObjectsCount,
+            totalSyncSuccessObjectsSizeCount: syncThreadCounts.syncSuccessObjectsCount,
+            totalRetryObjectsSizeCount: 0,
+        }
     }
 
     /**

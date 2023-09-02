@@ -39,6 +39,7 @@ export const CONFIGURATION_CONSTANTS = {
     AUTOMATIC_SYNC_INTERVAL: 7500, // in miliseconds
     DEBUG_MODE: true, // boolean
     ALLOW_RETRY_PROCESS: true,
+    SIMULATION_COUNT_OBJECT_SIZES: true,
 }
 
 

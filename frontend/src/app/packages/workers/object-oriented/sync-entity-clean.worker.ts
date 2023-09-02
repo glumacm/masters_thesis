@@ -35,6 +35,7 @@ import { NetworkStatusEnum } from '../../interfaces/network-status.interfaces';
 import { storeNewObject, StoreNewObjectResult } from '../../utilities/storage-utilities';
 import { SynchronizationLibraryBase } from '../../sync-lib-base';
 import { StopwatchService } from '../../services/stopwatch-service';
+import { DataSizeService } from '../../services/data-size-service';
 
 // type ResponseTest<T> = Promise<AxiosResponse<|SyncEntityResponse2I<T>>>;
 export class SyncEntityClean {
@@ -59,6 +60,9 @@ export class SyncEntityClean {
     private sentryCaptureMessage: any;
     private sendNewEventNotification: any; // sendNewEventNotification -> funkcija, ki posreduje nek SyncLibraryNotification event v Subject, na katerega se lahko developerji `narocijo`.
     private eventSourceService: EventSourceService | undefined;
+
+    private syncObjectsSizeCount = new DataSizeService(true);
+    private syncSuccessObjectsSizeCount = new DataSizeService(true);
 
     /**
      * Vse funkcije ki jih bom rabil kot dependencije
@@ -279,6 +283,11 @@ export class SyncEntityClean {
 
     public async batch_single_entity_sync(entityName: string, data: any, requestUuid?: string): Promise<any> {
         const entityNameFromConfiguration = (OBJECT_NAME_TO_PATH_MAPPER as any)[entityName];
+
+        if (CONFIGURATION_CONSTANTS.SIMULATION_COUNT_OBJECT_SIZES) {
+            this.syncObjectsSizeCount.calculateDataSize(data);
+        }
+
         this.consoleOutput.output(`again: `, this.configuration.agentId);
         // return axios.post(
         return this.customAxios.post(
@@ -387,12 +396,13 @@ export class SyncEntityClean {
                             obj.lastRequestUuid = mapEntityToRequestUuid[property];
                         });
 
-                        const beResult = await this.batch_single_entity_sync(property, mapper[property].map((data: SyncChamberRecordStructure) => {
+                        const entityObjectsToSend = mapper[property].map((data: SyncChamberRecordStructure) => {
                             const newData = data.record;
                             newData['uuid'] = data.localUUID;
                             newData['lastModified'] = data.lastModified;
                             return newData;
-                        }), mapEntityToRequestUuid[property]).then(
+                        });
+                        const beResult = await this.batch_single_entity_sync(property, entityObjectsToSend, mapEntityToRequestUuid[property]).then(
                             (success) => this.processBatchSingleEntitySuccessLogic(property, classTransformer.plainToInstance(SyncBatchSingleEntityResponse, success.data), uuids, mapEntityToRequestUuid[property]),
                             (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids, mapEntityToRequestUuid[property]),
                         );
@@ -420,6 +430,14 @@ export class SyncEntityClean {
             error: null,
         } as SyncLibraryNotification, initialTimer);
         return;
+    }
+
+    async syncObjectSizeCounts(calculationBytesDivider: number = DataSizeService.BYTES_DIVIDER): Promise<{syncObjectsCount: number, syncSuccessObjectsCount: number}>
+    {
+        return {
+            syncObjectsCount: this.syncObjectsSizeCount.getCurrentSizeCount(calculationBytesDivider),
+            syncSuccessObjectsCount: this.syncSuccessObjectsSizeCount.getCurrentSizeCount(calculationBytesDivider),
+        }
     }
 
     async processBatchSingleEntityErrorLogic(entityName: string, error: any, uuidsToSync: any[], requestUuid: string, errorType = SyncBatchSingleEntityStatusEnum.FATAL_ERROR): Promise<void> {
@@ -684,7 +702,7 @@ export class SyncEntityClean {
      * @returns Vrne undefined ali objekt iz <collectionName> tabele znotraj <db> baze.
      */
     async doesEntryExistInDB(db: AppDB, collectionName: string, objectUuid: string): Promise<any> {
-        if (!this.doesTableExistInDB(db, collectionName)) {
+        if (! (await this.doesTableExistInDB(db, collectionName))) {
             return undefined;
         }
 

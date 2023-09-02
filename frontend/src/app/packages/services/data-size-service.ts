@@ -7,9 +7,9 @@ export class DataSizeService {
      * bi lahko preklapljala med nacinom, ki racuna velikost objektov ali ne...
      * predvsem uporabno v primeru, ko bi rad delal casovno analizo
      */
-    static readonly BYTES_DIVIDER = 1;
-    static readonly KILOBYTES_DIVIDER = Math.pow(10,3); // Uporabimo kar splosno delitev, ne bomo skrbeli za 1024
-    static readonly MEGABYTES_DIVIDER = Math.pow(10,6);
+    static readonly BYTES_DIVIDER: number = 1;
+    static readonly KILOBYTES_DIVIDER: number = Math.pow(10,3); // Uporabimo kar splosno delitev, ne bomo skrbeli za 1024
+    static readonly MEGABYTES_DIVIDER: number = Math.pow(10,6);
 
     private currentSizeCount: number = 0;
     private addCalculatedToCurrentCount: boolean = false;
