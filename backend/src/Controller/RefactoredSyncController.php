@@ -15,10 +15,12 @@ use App\Models\SyncEntityResponse;
 use App\Models\SyncRequestStatus;
 use App\Models\SyncRequestStatusRequest;
 use App\Models\SyncRequestStatusResponse;
+use App\Models\SyncSimulationSummaryRequest;
 use App\Repository\SyncJobRepository;
 use App\Repository\TestEntityRepository;
 use App\Service\ApiNameConverter;
 use App\Service\ConflictConfigurationService;
+use App\Service\FileService;
 use App\Service\GenericService;
 use App\Service\MergeProcessResult;
 use App\Service\MergeService;
@@ -196,6 +198,36 @@ class RefactoredSyncController extends AbstractController
         $response = new Response($content);
         $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT,$filename));
         return new JsonResponse($content);
+    }
+
+    #[Route('api/refactored/meet_again_soon', name: 'meet_again_soon', methods: ['GET'])]
+    public function simulation_summary_soon(
+        Request $request,
+        LoggerInterface $logger,
+    ): Response
+    {
+        $logger->info('########## YOUR MIND IS PLAYING TRICKS ON YOU MY DEAR    #############');
+        return new JsonResponse(['listen' => 'to the words i say']);
+    }
+
+    #[Route('api/refactored/create_simulation_summary', name: 'simulation_summary', methods: ['POST'])]
+    public function simulation_summary(
+        Request $request,
+        string $projectDir,
+        LoggerInterface $logger,
+        FileService $file_service,
+        MergeService $merge_service,
+    )
+    {
+        $serializer = $merge_service->get_serializer();
+        /**
+         * @var SyncSimulationSummaryRequest $sync_simulation_summary_request
+         */
+        $sync_simulation_summary_request = $serializer->deserialize($request->getContent(), SyncSimulationSummaryRequest::class, 'json');
+        $agent_id = $sync_simulation_summary_request->agent_id;
+        $file_name = $file_service->createFileName($projectDir, 'simulation', sprintf('simulation_summary_%s', $agent_id));
+        file_put_contents($file_name, $sync_simulation_summary_request->file_content);
+        return new JsonResponse(['success' => true]);
     }
 
     #[Route('api/refactored/sync', name: 'app_refactored_sync')]
