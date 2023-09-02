@@ -440,6 +440,11 @@ export class SyncEntityClean {
         }
     }
 
+    async resetSyncObjectSizeCount(addCalculatedToCurrentCount: boolean = true): Promise<void> {
+        this.syncObjectsSizeCount = new DataSizeService(addCalculatedToCurrentCount);
+        this.syncSuccessObjectsSizeCount = new DataSizeService(addCalculatedToCurrentCount);
+    }
+
     async processBatchSingleEntityErrorLogic(entityName: string, error: any, uuidsToSync: any[], requestUuid: string, errorType = SyncBatchSingleEntityStatusEnum.FATAL_ERROR): Promise<void> {
         this.consoleOutput.output(`#processBatchSingleEntityErrorLogic process`, error); //TODO: Odstraniti ta log, ko bo potrjeno, da logika dela
         for (let uuid of uuidsToSync) {

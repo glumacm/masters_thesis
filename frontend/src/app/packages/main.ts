@@ -353,6 +353,11 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
             totalRetryObjectsSizeCount: 0,
         }
     }
+    
+    public async resetSyncObjectSizeCount(addCalculatedToCurrentCount: boolean = true): Promise<void> {
+        await this.syncEntityInstance!.resetSyncObjectSizeCount(addCalculatedToCurrentCount);
+        return;
+    }
 
     /**
      * ********************************************************************************

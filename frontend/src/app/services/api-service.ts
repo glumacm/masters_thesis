@@ -21,4 +21,14 @@ export class ApiService {
     initiateTestingExamplesForSyncJob() {
         return this.customAxios.get(`${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/initiate_sync_job_state_for_retry_testing`);
     }
+
+    simulationSummary(agentId: string, fileContent: string) {
+        return this.customAxios.post(
+            `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/create_simulation_summary`,
+            {
+                fileContent,
+                agentId
+            }
+        );
+    }
 }

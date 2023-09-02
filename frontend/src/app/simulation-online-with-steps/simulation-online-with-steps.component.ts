@@ -21,6 +21,7 @@ import tempTestEntityBackup from '../packages/mock-data/26-08-2023/temp_testEnti
 import { SimulationStepActionEnum } from '../packages/enums/simulation/simulation-step-action.enum';
 import { SimulationStep } from '../packages/models/simulation/simulation-step.model';
 import { Simulation } from '../packages/models/simulation/simulation.model';
+import { DataSizeService } from '../packages/services/data-size-service';
 
 
 @Component({
@@ -93,7 +94,10 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
   /**
    * START SIMULATION 
    */
-  public async startSimulation(enableConcurrencyResolution = false) {
+  public async startSimulation(enableConcurrencyResolution = false, keepOldSizeCounts = false) {
+    if (!keepOldSizeCounts) {
+      this.syncLib.resetSyncObjectSizeCount(true);
+    }
     let concurrencyProblem = false; // Moral sem nastaviti spremenljivko v tem kontekstu, ker drugace se vrednost ni pravilno zaznala znotraj te funkcije....
     this.eventsSubscription = SynchronizationLibrary.eventsSubject.subscribe(
       (event: SyncLibraryNotification) => {
@@ -115,7 +119,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     this.eventsSubscription?.unsubscribe();
 
     if (concurrencyProblem && enableConcurrencyResolution) {
-      await this.startSimulation();
+      await this.startSimulation(enableConcurrencyResolution, true);
       return;
     }
     try {
@@ -129,14 +133,44 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       this.consoleOutput.output('Export data error!!!', error);
 
     }
+
+    const syncObjectSizeCounts = await this.syncLib.calculateSyncObjectSizeCounts();
+    await this.createSimulationSummary(this.simulation.agentId, JSON.stringify({
+      totalSyncCount: syncObjectSizeCounts.totalSyncObjectsSizeCount,
+      totalCount: syncObjectSizeCounts.totalObjectsSizeCount,
+      totalSyncSuccessCount: syncObjectSizeCounts.totalSyncSuccessObjectsSizeCount,
+      totalRetryCount: syncObjectSizeCounts.totalRetryObjectsSizeCount
+    }));
+
     this.setSimulationFinished(true);
     this.basicInputForm.controls['simulationFinished'].setValue(true);
+  }
+
+  private async createSimulationSummary(agentId: string, fileContent: string): Promise<void> {
+    const apiService = new ApiService(false, undefined);
+    try {
+      const response = await apiService.simulationSummary(agentId, fileContent);
+    } catch (exception) {
+      this.syncLib.sendNewEventNotification(plainToInstance(
+        SyncLibraryNotification,
+        {
+          type: SyncLibraryNotificationEnum.SIMULATION_SUMMARY_ERROR,
+          message: 'Prislo je do napake pri ustvarjanju porocila za simulacijo',
+          error: exception
+        } as SyncLibraryNotification
+      )
+      );
+      this.consoleOutput.output(`ERROR while sending simulation SUMMARY!!!`, exception);
+    }
+
+    return;
+
   }
 
   public async storeDataFromForm(useExistingId: boolean = false, recordId = '8b292617-ef08-4ce9-8e7b-161dddc92e5d') {
     this.consoleOutput.output(recordId);
     const formData = {
-      'firstInput':this.basicInputForm.controls['firstInput'].value,
+      'firstInput': this.basicInputForm.controls['firstInput'].value,
       'secondInput': this.basicInputForm.controls['secondInput'].value
     };
     const savedData = await this.syncLib.storeNewObject('testEntity', useExistingId ? recordId : uuidv4(), formData);
@@ -155,7 +189,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       }
     } else if (step.action === SimulationStepActionEnum.BATCH_SYNC) {
       await this.syncLib.startBatchSync();
-    } else if (step.action === SimulationStepActionEnum.CHANGE_NETWORK) {      
+    } else if (step.action === SimulationStepActionEnum.CHANGE_NETWORK) {
       window.dispatchEvent(new Event(step.networkStatus));
     } else {
       this.consoleOutput.output(`Unrecognized step`, step);
@@ -302,7 +336,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     } else {
       db = await this.syncLib.getSyncDB();
     }
-    
+
     await db.finishSetup();
 
     try {
@@ -339,16 +373,16 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
         await AppDB.delete(CONFIGURATION_CONSTANTS.BROWSER_SYNC_DATABASE_NAME);
       }
     }
-    
-    
+
+
     try {
       db = new AppDB(databaseName);
       db.version(1).stores({ 'testEntity': DATABASE_TABLES_SCHEMA_MAPPER[databaseName] });
-      const fileFromJSON = new Blob([JSON.stringify(dataToImport)],{type:'application/json'});
+      const fileFromJSON = new Blob([JSON.stringify(dataToImport)], { type: 'application/json' });
       await db.import(fileFromJSON);
       await db.finishSetup();
       db.close();
-    } finally {}
+    } finally { }
   }
 
   public async importDatabase() {
