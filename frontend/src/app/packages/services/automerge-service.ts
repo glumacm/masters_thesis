@@ -41,7 +41,7 @@ export class SyncLibAutoMerge {
      */
     compareTwoObjects(object1: any, object2: any): Operation[] {
         // return fast_json_patch.compare(objectFromBE, parameters.preparedRecord.record);
-        return fast_json_patch.compare(object1, object2);
+        return fast_json_patch.compare(object1, object2).filter((value: Operation) => !value.path.startsWith('/lastModified'));
     }
 
     applyPatch(objectToMutate: any, patchOperations: Operation[]): any {
