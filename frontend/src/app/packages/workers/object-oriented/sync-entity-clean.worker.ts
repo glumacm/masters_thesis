@@ -36,6 +36,8 @@ import { storeNewObject, StoreNewObjectResult } from '../../utilities/storage-ut
 import { SynchronizationLibraryBase } from '../../sync-lib-base';
 import { StopwatchService } from '../../services/stopwatch-service';
 import { DataSizeService } from '../../services/data-size-service';
+import { SyncSimulationTime } from '../../models/sync/sync-simulation-time.model';
+import { SyncSimulationEntityTime } from '../../models/sync/sync-simulation-entity-time.model';
 
 // type ResponseTest<T> = Promise<AxiosResponse<|SyncEntityResponse2I<T>>>;
 export class SyncEntityClean {
@@ -340,10 +342,10 @@ export class SyncEntityClean {
     }
 
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
-        const syncTime = {
-            entityTimes: {} as any,
-            totalTime: null,  // Pricakujem stopWatch za startSync
-        } as any;
+        const syncTime = classTransformer.plainToInstance(SyncSimulationTime,{
+            entityTimes: [] as any[],
+            totalTime: 0,  // Pricakujem stopWatch za startSync
+        } as SyncSimulationTime);
         const batchSyncStopwatch = new StopwatchService(true);
         let initialTimer = 200;
         const timerSteper = 100;
@@ -428,13 +430,15 @@ export class SyncEntityClean {
                     if (entityObjectsToSend?.length > 0 && CONFIGURATION_CONSTANTS.SIMULATION_COUNT_OBJECT_SIZES) {
                         singleSyncDataSizeCount.calculateDataSize(entityObjectsToSend);
                     }
-                    syncTime.entityTimes[mapEntityToRequestUuid[property]] = {
+                    const syncEntityTime = classTransformer.plainToInstance(SyncSimulationEntityTime,{
+                        requestUuid: mapEntityToRequestUuid[property],
                         entityName: property,
                         syncTime: entityTime.showTime(),  // podatki predstavljajo [ms] === milisekunde
                         objectsSize: singleSyncDataSizeCount.getCurrentSizeCount(DataSizeService.KILOBYTES_DIVIDER),  // podatki predstavaljajo [kB]
                         numberOfObjects: entityObjectsToSend?.length,
                         type: ( (entityObjectsToSend?.length && !error) ? 'SUCCESS' : 'ERROR'),
-                    };
+                    } as SyncSimulationEntityTime);
+                    syncTime.entityTimes.push(syncEntityTime);
                 }
             }
         }
