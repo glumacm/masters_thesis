@@ -359,6 +359,10 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         return;
     }
 
+    public async getSyncTimes(): Promise<any[]> {
+        return await this.syncEntityInstance!.getSyncTimes();
+    }
+
     /**
      * ********************************************************************************
      * ********************************************************************************

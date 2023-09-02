@@ -63,6 +63,7 @@ export class SyncEntityClean {
 
     private syncObjectsSizeCount = new DataSizeService(true);
     private syncSuccessObjectsSizeCount = new DataSizeService(true);
+    private syncTimes: any[] = [];
 
     /**
      * Vse funkcije ki jih bom rabil kot dependencije
@@ -339,6 +340,10 @@ export class SyncEntityClean {
     }
 
     async startBatchSync(useSyncLibAutoMerge: boolean = true): Promise<void> {
+        const syncTime = {
+            entityTimes: {} as any,
+            totalTime: null,  // Pricakujem stopWatch za startSync
+        } as any;
         const batchSyncStopwatch = new StopwatchService(true);
         let initialTimer = 200;
         const timerSteper = 100;
@@ -382,7 +387,9 @@ export class SyncEntityClean {
                      * Tukaj bi bilo smiselno razmisliti o tem kako resiti bolj "pametno".
                      * Mogoce za magistrsko je ok, ampak za nadaljni razvoj, bi bilo smiselno imeti nek stack/queue
                      */
-
+                    const entityTime = new StopwatchService(true);
+                    let entityObjectsToSend = null;
+                    let error = null;
                     try {
                         const itemsToSync = await syncDB.table(property)
                             .filter(
@@ -396,7 +403,7 @@ export class SyncEntityClean {
                             obj.lastRequestUuid = mapEntityToRequestUuid[property];
                         });
 
-                        const entityObjectsToSend = mapper[property].map((data: SyncChamberRecordStructure) => {
+                        entityObjectsToSend = mapper[property].map((data: SyncChamberRecordStructure) => {
                             const newData = data.record;
                             newData['uuid'] = data.localUUID;
                             newData['lastModified'] = data.lastModified;
@@ -407,6 +414,7 @@ export class SyncEntityClean {
                             (error) => this.processBatchSingleEntityErrorLogic(property, error, uuids, mapEntityToRequestUuid[property]),
                         );
                     } catch (exception) {
+                        error = exception;
                         timeoutFunction({
                             type: SyncLibraryNotificationEnum.UNKNOWN_ERROR,
                             message: 'Ocitno je prislo do neke napake, ki je nisem predvidel',
@@ -415,14 +423,27 @@ export class SyncEntityClean {
                         initialTimer+=timerSteper;
                         this.consoleOutput.output(`startBatchSync: napaka ki je nisem prepostavil: `, exception);
                     }
+                    entityTime.stop();
+                    const singleSyncDataSizeCount = new DataSizeService(true);
+                    if (entityObjectsToSend?.length > 0 && CONFIGURATION_CONSTANTS.SIMULATION_COUNT_OBJECT_SIZES) {
+                        singleSyncDataSizeCount.calculateDataSize(entityObjectsToSend);
+                    }
+                    syncTime.entityTimes[mapEntityToRequestUuid[property]] = {
+                        entityName: property,
+                        syncTime: entityTime.showTime(),  // podatki predstavljajo [ms] === milisekunde
+                        objectsSize: singleSyncDataSizeCount.getCurrentSizeCount(DataSizeService.KILOBYTES_DIVIDER),  // podatki predstavaljajo [kB]
+                        numberOfObjects: entityObjectsToSend?.length,
+                        type: ( (entityObjectsToSend?.length && !error) ? 'SUCCESS' : 'ERROR'),
+                    };
                 }
-
             }
         }
         finally {
             this.syncInProgress = false;
         }
         batchSyncStopwatch.stop();
+        syncTime.totalTime = batchSyncStopwatch.showTime();  // podatki predstavljajo [ms] === milisekunde
+        this.syncTimes.push(syncTime);
         this.consoleOutput.output(`Batch sync process excetuted in time: ${batchSyncStopwatch.showTime()} [ms]`);
         await timeoutFunction({
             type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED,
@@ -430,6 +451,10 @@ export class SyncEntityClean {
             error: null,
         } as SyncLibraryNotification, initialTimer);
         return;
+    }
+
+    async getSyncTimes(): Promise<any[]> {
+        return this.syncTimes;
     }
 
     async syncObjectSizeCounts(calculationBytesDivider: number = DataSizeService.BYTES_DIVIDER): Promise<{syncObjectsCount: number, syncSuccessObjectsCount: number}>

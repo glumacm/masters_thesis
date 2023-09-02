@@ -135,11 +135,13 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     }
 
     const syncObjectSizeCounts = await this.syncLib.calculateSyncObjectSizeCounts();
+    const syncTimes = await this.syncLib.getSyncTimes();
     await this.createSimulationSummary(this.simulation.agentId, JSON.stringify({
       totalSyncCount: syncObjectSizeCounts.totalSyncObjectsSizeCount,
       totalCount: syncObjectSizeCounts.totalObjectsSizeCount,
       totalSyncSuccessCount: syncObjectSizeCounts.totalSyncSuccessObjectsSizeCount,
-      totalRetryCount: syncObjectSizeCounts.totalRetryObjectsSizeCount
+      totalRetryCount: syncObjectSizeCounts.totalRetryObjectsSizeCount,
+      simulationTimes: syncTimes,
     }));
 
     this.setSimulationFinished(true);
