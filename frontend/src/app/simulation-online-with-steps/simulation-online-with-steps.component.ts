@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Route, Router } from '@angular/router';
 import { CONSOLE_STYLE, CustomConsoleOutput } from '../packages/utilities/console-style';
-import { ClassTransformOptions, Type, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import { SynchronizationLibrary } from '../packages/main';
 import { FormControl, FormGroup } from '@angular/forms';
 import { EventSourceService } from '../packages/services/event-source-service';
@@ -18,6 +18,9 @@ import { BehaviorSubject, Subscription, first } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import syncTestEntityBackup from '../packages/mock-data/26-08-2023/sync_testEntity_backup';
 import tempTestEntityBackup from '../packages/mock-data/26-08-2023/temp_testEntity_backup';
+import { SimulationStepActionEnum } from '../packages/enums/simulation/simulation-step-action.enum';
+import { SimulationStep } from '../packages/models/simulation/simulation-step.model';
+import { Simulation } from '../packages/models/simulation/simulation.model';
 
 
 @Component({
@@ -424,38 +427,4 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     await this.syncLib.storeNewObject('testEntity', uuid, data);
   }
 
-}
-
-enum SimulationStepActionEnum {
-  NEW = 'NEW',
-  EDIT = 'EDIT',
-  DELETE = 'DELETE',
-  UPSERT = 'UPSERT',
-  BATCH_SYNC = 'BATCH_SYNC',
-  CHANGE_NETWORK = 'CHANGE_NETWORK',
-}
-
-class SimulationStep {
-  //@ts-ignore
-  agentId: string;
-  //@ts-ignore
-  recordId: string;
-  //@ts-ignore
-  action: string;
-  //@ts-ignore
-  entityName: string;
-  data: any;
-  //@ts-ignore
-  networkStatus: string;
-
-}
-
-class Simulation {
-  //@ts-ignore
-  agentId: string;
-  //@ts-ignore
-  simulationName: string;
-  @Type(() => SimulationStep)
-  //@ts-ignore
-  steps: SimulationStep[];
 }
