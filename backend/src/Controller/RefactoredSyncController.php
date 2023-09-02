@@ -25,6 +25,7 @@ use App\Service\GenericService;
 use App\Service\MergeProcessResult;
 use App\Service\MergeService;
 use App\Service\PushService;
+use App\Service\SimulationSummaryService;
 use App\Service\SynchronizationSyncedObject;
 use App\Service\SynchronizationSyncEntityPostData;
 use App\Service\SynchronizationSyncEntityRecord;
@@ -36,6 +37,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,6 +54,8 @@ use Symfony\Component\Serializer\Serializer;
 
 class RefactoredSyncController extends AbstractController
 {
+
+    const SIMULATION_SUMMARY_NAME = 'simulation_summary';
 
     #[Route('api/refactored/store_fe_database_export/{database_name}/{browser_name}/{simulation_name}', name: 'store_fe_database_export', methods: ['POST'])]
     public function store_fe_database_export(
@@ -210,6 +214,25 @@ class RefactoredSyncController extends AbstractController
         return new JsonResponse(['listen' => 'to the words i say']);
     }
 
+    #[Route('api/refactored/create_summary_report', name: 'create_summary_report', methods: ['GET'])]
+    public function create_summary_report(
+        Request $request,
+        LoggerInterface $logger,
+        string $projectDir,
+        SimulationSummaryService $simulation_summary_service,
+    )
+    {
+        $finder = new Finder();
+        $finder->files()->in(sprintf('%s/%s', $projectDir, 'simulation'));
+
+        /**
+         * @var Finder|null $filesMatchingSummaryFile
+         */
+        $filesMatchingSummaryFile = $simulation_summary_service->findMatchingFiles(sprintf('%s/%s', $projectDir, 'simulation'), self::SIMULATION_SUMMARY_NAME);
+        return new JsonResponse(['success' => 'Sam En Mejhen Poljub Mi Dej']);
+    }
+
+
     #[Route('api/refactored/create_simulation_summary', name: 'simulation_summary', methods: ['POST'])]
     public function simulation_summary(
         Request $request,
@@ -225,7 +248,7 @@ class RefactoredSyncController extends AbstractController
          */
         $sync_simulation_summary_request = $serializer->deserialize($request->getContent(), SyncSimulationSummaryRequest::class, 'json');
         $agent_id = $sync_simulation_summary_request->agent_id;
-        $file_name = $file_service->createFileName($projectDir, 'simulation', sprintf('simulation_summary_%s', $agent_id));
+        $file_name = $file_service->createFileName($projectDir, 'simulation', sprintf('%s_%s', self::SIMULATION_SUMMARY_NAME, $agent_id));
         file_put_contents($file_name, $sync_simulation_summary_request->file_content);
         return new JsonResponse(['success' => true]);
     }
