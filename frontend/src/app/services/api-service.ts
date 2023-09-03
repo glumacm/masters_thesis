@@ -24,7 +24,7 @@ export class ApiService {
 
     simulationSummary(agentId: string, fileContent: string) {
         return this.customAxios.post(
-            `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/create_simulation_summary`,
+            `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/simulation/create_simulation_summary`,
             {
                 fileContent,
                 agentId
