@@ -12,10 +12,10 @@ namespace App\Models;
 
 class SyncSimulationSummary
 {
-    public int $total_sync_count;
-    public int $total_count;
-    public int $total_sync_success_count;
-    public int $total_retry_count;
+    public float $total_sync_count;
+    public float $total_count;
+    public float $total_sync_success_count;
+    public float $total_retry_count;
     /**
      * @var SyncSimulationTime[]|null
      */

@@ -52,10 +52,8 @@ use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 
-class RefactoredSyncController extends AbstractController
+class SyncController extends AbstractController
 {
-
-    const SIMULATION_SUMMARY_NAME = 'simulation_summary';
 
     #[Route('api/refactored/store_fe_database_export/{database_name}/{browser_name}/{simulation_name}', name: 'store_fe_database_export', methods: ['POST'])]
     public function store_fe_database_export(
@@ -69,7 +67,7 @@ class RefactoredSyncController extends AbstractController
     ): JsonResponse {
 
         $now = new \DateTime();
-        $simulation_dir = '/simulation';
+        $simulation_dir = sprintf('/%s', SimulationSummaryService::SIMULATION_DIRECTORY);
         $now_formated = $now->format('Y-m-d_H:i');
         $filename = $simulation_name . '_' . $browser_name . '_' . $database_name . '.json';
         $full_filename = $projectDir . $simulation_dir . '/'.$now_formated.'_' . $filename;
@@ -214,51 +212,12 @@ class RefactoredSyncController extends AbstractController
         return new JsonResponse(['listen' => 'to the words i say']);
     }
 
-    #[Route('api/refactored/create_summary_report', name: 'create_summary_report', methods: ['GET'])]
-    public function create_summary_report(
-        Request $request,
-        LoggerInterface $logger,
-        string $projectDir,
-        SimulationSummaryService $simulation_summary_service,
-    )
-    {
-        $finder = new Finder();
-        $finder->files()->in(sprintf('%s/%s', $projectDir, 'simulation'));
-
-        /**
-         * @var Finder|null $filesMatchingSummaryFile
-         */
-        $filesMatchingSummaryFile = $simulation_summary_service->findMatchingFiles(sprintf('%s/%s', $projectDir, 'simulation'), self::SIMULATION_SUMMARY_NAME);
-        return new JsonResponse(['success' => 'Sam En Mejhen Poljub Mi Dej']);
-    }
-
-
-    #[Route('api/refactored/create_simulation_summary', name: 'simulation_summary', methods: ['POST'])]
-    public function simulation_summary(
-        Request $request,
-        string $projectDir,
-        LoggerInterface $logger,
-        FileService $file_service,
-        MergeService $merge_service,
-    )
-    {
-        $serializer = $merge_service->get_serializer();
-        /**
-         * @var SyncSimulationSummaryRequest $sync_simulation_summary_request
-         */
-        $sync_simulation_summary_request = $serializer->deserialize($request->getContent(), SyncSimulationSummaryRequest::class, 'json');
-        $agent_id = $sync_simulation_summary_request->agent_id;
-        $file_name = $file_service->createFileName($projectDir, 'simulation', sprintf('%s_%s', self::SIMULATION_SUMMARY_NAME, $agent_id));
-        file_put_contents($file_name, $sync_simulation_summary_request->file_content);
-        return new JsonResponse(['success' => true]);
-    }
-
     #[Route('api/refactored/sync', name: 'app_refactored_sync')]
     public function index(): JsonResponse
     {
         return $this->json([
             'message' => 'Welcome to your new controller!',
-            'path' => 'src/Controller/RefactoredSyncController.php',
+            'path' => 'src/Controller/SyncController.php',
         ]);
     }
 
