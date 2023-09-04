@@ -29,6 +29,7 @@ export async function storeNewObject(
     consoleOutput: CustomConsoleOutput,
     synchronizationLibrary: any,
     sendNotificationProxy: ((event: any) => Promise<any>) | undefined = undefined,
+    isAutomaticEvent: boolean = false,
 ): Promise<StoreNewObjectResult> {
 
     const retrievedConflictDB = conflictDB; //await this.getConflictDB();
@@ -123,7 +124,8 @@ export async function storeNewObject(
             objectData,
             [],
             undefined,
-            ChamberSyncObjectStatus.pending_sync, objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] ? objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] : undefined,
+            (isAutomaticEvent ? ChamberSyncObjectStatus.synced : ChamberSyncObjectStatus.pending_sync), 
+            objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] ? objectData[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD] : undefined,
         ) as SyncChamberRecordStructure;
     }
     (syncDB).table(entityName).put(dataToReturn, objectUuid);

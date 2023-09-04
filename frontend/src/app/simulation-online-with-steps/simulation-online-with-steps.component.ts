@@ -22,6 +22,7 @@ import { SimulationStepActionEnum } from '../packages/enums/simulation/simulatio
 import { SimulationStep } from '../packages/models/simulation/simulation-step.model';
 import { Simulation } from '../packages/models/simulation/simulation.model';
 import { DataSizeService } from '../packages/services/data-size-service';
+import { delay } from '../packages/utilities/worker-utilities';
 
 
 @Component({
@@ -193,6 +194,8 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
       await this.syncLib.startBatchSync();
     } else if (step.action === SimulationStepActionEnum.CHANGE_NETWORK) {
       window.dispatchEvent(new Event(step.networkStatus));
+    } else if (step.action === SimulationStepActionEnum.WAIT) {
+      await delay(3000);
     } else {
       this.consoleOutput.output(`Unrecognized step`, step);
     }

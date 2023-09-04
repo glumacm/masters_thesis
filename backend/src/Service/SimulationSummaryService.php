@@ -68,13 +68,23 @@ class SimulationSummaryService
                 );
             }
         }
-        $now                   = new \DateTime();
-        $now_formated          = $now->format('Y-m-d_H:i');
-        $final_results_success = $this->calculateAverageTimesOnFinalResults($summary_report_success->summary_results);
-        $final_results_error   = $this->calculateAverageTimesOnFinalResults($summary_report_error->summary_results);
+        $now                    = new \DateTime();
+        $now_formated           = $now->format('Y-m-d_H:i');
+        $final_results_success  = $this->calculateAverageTimesOnFinalResults($summary_report_success->summary_results);
+        $final_results_error    = $this->calculateAverageTimesOnFinalResults($summary_report_error->summary_results);
+        $summary_report_error   = $this->calculateAverageTimesForAllBatches(
+            $summary_report_error,
+            $final_results_error
+        );
+        $summary_report_success = $this->calculateAverageTimesForAllBatches(
+            $summary_report_success,
+            $final_results_success
+        );
 
         $summary_report_success->summary_results = $final_results_success;
-        $summary_report_error->summary_results = $final_results_error;
+        $summary_report_error->summary_results   = $final_results_error;
+        $summary_report_success = $this->checkBatchMinMaxForDefaultAndSetToZero($summary_report_success);
+        $summary_report_error = $this->checkBatchMinMaxForDefaultAndSetToZero($summary_report_error);
 
         //TODO: To bi bilo dobro premestitit v FileService?
         file_put_contents(
@@ -101,6 +111,18 @@ class SimulationSummaryService
         return array();
     }
 
+    private function checkBatchMinMaxForDefaultAndSetToZero(SyncSimulationSummaryReportResult $summary_report): SyncSimulationSummaryReportResult
+    {
+        if($summary_report->batch_max_time == PHP_FLOAT_MIN) {
+            $summary_report->batch_max_time = 0;
+        }
+        if($summary_report->batch_min_time == PHP_FLOAT_MAX) {
+            $summary_report->batch_min_time = 0;
+        }
+
+        return $summary_report;
+    }
+
     private function createEmptySummaryReport(): SyncSimulationSummaryReportResult
     {
         $final_report                           = new SyncSimulationSummaryReportResult();
@@ -109,6 +131,10 @@ class SimulationSummaryService
         $final_report->total_sync_success_count = 0;
         $final_report->total_sync_error_count   = 0;
         $final_report->total_time               = 0;
+        $final_report->total_average_for_batch  = 0;
+        $final_report->batch_max_time           = PHP_FLOAT_MIN;
+        $final_report->batch_min_time           = PHP_FLOAT_MAX;
+
 
         return $final_report;
     }
@@ -138,10 +164,10 @@ class SimulationSummaryService
              * @var SyncSimulationEntityTime $simulation_entity_time
              */
             foreach ($simulation_time->entity_times as $key_j => $simulation_entity_time) {
-                $entity_name_empty = !$simulation_entity_time->entity_name;
-                $objects_empty     = !$simulation_entity_time->number_of_objects;
+                $entity_name_empty           = !$simulation_entity_time->entity_name;
+                $objects_empty               = !$simulation_entity_time->number_of_objects;
                 $summary_report->total_count += $simulation_entity_time->objects_size;
-                $summary_report->total_time += $simulation_entity_time->sync_time;
+                $summary_report->total_time  += $simulation_entity_time->sync_time;
                 $is_invalid_entity_time_type = $simulation_entity_time->type !== $entity_time_type->name;
                 if ($is_invalid_entity_time_type) {
                     continue; # da znamo delati razliko med SUCCESS in ERROR
@@ -171,9 +197,39 @@ class SimulationSummaryService
                     $entry_identifier,
                     $simulation_entity_time
                 );
+                if($simulation_entity_time->sync_time > $summary_report->batch_max_time) {
+                    $summary_report->batch_max_time = $simulation_entity_time->sync_time;
+                }
+
+                if ($simulation_entity_time->sync_time < $summary_report->batch_min_time) {
+                    $summary_report->batch_min_time = $simulation_entity_time->sync_time;
+                }
             }
         }
         $summary_report->summary_results = $summary_results;
+        return $summary_report;
+    }
+
+    /**
+     * @param SyncSimulationSummaryReportResult $summary_report
+     * @param array $summary_results
+     * @return SyncSimulationSummaryReportResult
+     */
+    private function calculateAverageTimesForAllBatches(
+        SyncSimulationSummaryReportResult $summary_report,
+        array $summary_results
+    ): SyncSimulationSummaryReportResult {
+        /**
+         * @var SyncSimulationSummaryResult $summary_result
+         */
+        $number_of_batches = 0;
+        foreach ($summary_results as $key => $summary_result) {
+            $summary_report->total_average_for_batch += $summary_result->average_time;
+            $number_of_batches                       += 1;
+        }
+
+        $summary_report->total_average_for_batch = $number_of_batches > 0 ? $summary_report->total_average_for_batch / $number_of_batches : 0;
+
         return $summary_report;
     }
 

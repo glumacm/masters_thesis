@@ -222,7 +222,8 @@ export class SyncEntityClean {
             tempDB,
             this.consoleOutput,
             SynchronizationLibraryBase,
-            this.sendNewEventNotification
+            this.sendNewEventNotification,
+            newRecordBeEvent
         );
         this.syncDB = storedObjectResult.syncDB;
         this.tempDB = storedObjectResult.tempDB;

@@ -66,7 +66,7 @@ export const SHORT_ENTITIY_NAME_TO_OBJECT_NAME: any = {
 // @deprecated This mapper will become deprecated and it will be substituted with DATABASE_TABLES_SCHEMA_MAPPER, which introduces @breaking-change
 export const DATABASE_TABLES_MAPPER: { [key: string]: any } = {
     'sync' : { 
-        'SyncDB_object_name128': '' ,
+        // 'SyncDB_object_name128': '' ,
         'example_table': '&localUUID,objectStatus,changes,record,lastModified,lastRequestUuid,retries',
     },
     'syncing' : { 'example_table': '&localUUID,objectStatus,changes,record,lastModified' },
@@ -79,7 +79,7 @@ export const DATABASE_TABLES_MAPPER: { [key: string]: any } = {
 
 export const DATABASE_TABLES_MAPPER_NEW: { [key:string]: any} = {
     sync : { 
-        'SyncDB_object_name128': '' ,
+        // 'SyncDB_object_name128': '' ,
         example_table: '&localUUID,objectStatus,changes,record,lastModified',
     },
     syncing : { 'example_table': '&localUUID,objectStatus,changes,record,lastModified' },
