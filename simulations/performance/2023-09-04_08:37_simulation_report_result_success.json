@@ -1,1 +1,101 @@
-{"totalCount":44.081999999999994,"totalSyncSuccessCount":44.081999999999994,"totalSyncErrorCount":0,"totalTime":124029.80000004172,"totalAverageForBatch":6461.92500000149,"batchMinTime":641,"batchMaxTime":12123.59999999404,"summaryResults":{"testEntity_17":{"entityName":"testEntity","numberOfObjects":17,"averageTime":7605.79999999702,"totalTime":15211.59999999404,"numberOfInstances":2,"objectsTotalSize":4.7780000000000005,"objectsAverageSize":2.3890000000000002},"testEntity_15":{"entityName":"testEntity","numberOfObjects":15,"averageTime":2990.5499999970198,"totalTime":5981.0999999940395,"numberOfInstances":2,"objectsTotalSize":4.2219999999999995,"objectsAverageSize":2.1109999999999998},"testEntity_27":{"entityName":"testEntity","numberOfObjects":27,"averageTime":11433.14999999106,"totalTime":22866.29999998212,"numberOfInstances":2,"objectsTotalSize":7.558,"objectsAverageSize":3.779},"testEntity_12":{"entityName":"testEntity","numberOfObjects":12,"averageTime":2761.7000000029802,"totalTime":5523.4000000059605,"numberOfInstances":2,"objectsTotalSize":3.3979999999999997,"objectsAverageSize":1.6989999999999998},"testEntity_10":{"entityName":"testEntity","numberOfObjects":10,"averageTime":1982.2000000178814,"totalTime":3964.400000035763,"numberOfInstances":2,"objectsTotalSize":2.82,"objectsAverageSize":1.41},"testEntity_25":{"entityName":"testEntity","numberOfObjects":25,"averageTime":11388.40000000596,"totalTime":22776.80000001192,"numberOfInstances":2,"objectsTotalSize":7.002,"objectsAverageSize":3.501},"testEntity_20":{"entityName":"testEntity","numberOfObjects":20,"averageTime":6774,"totalTime":13548,"numberOfInstances":2,"objectsTotalSize":5.612,"objectsAverageSize":2.806},"testEntity_22":{"entityName":"testEntity","numberOfObjects":22,"averageTime":11674.60000000894,"totalTime":23349.20000001788,"numberOfInstances":2,"objectsTotalSize":6.167999999999999,"objectsAverageSize":3.0839999999999996},"testEntity_5":{"entityName":"testEntity","numberOfObjects":5,"averageTime":2800.1500000059605,"totalTime":5600.300000011921,"numberOfInstances":2,"objectsTotalSize":1.414,"objectsAverageSize":0.707},"testEntity_8":{"entityName":"testEntity","numberOfObjects":8,"averageTime":5208.699999988079,"totalTime":5208.699999988079,"numberOfInstances":1,"objectsTotalSize":1.11,"objectsAverageSize":1.11}}}
+{
+    "totalCount": 44.081999999999994,
+    "totalSyncSuccessCount": 44.081999999999994,
+    "totalSyncErrorCount": 0,
+    "totalTime": 124029.80000004172,
+    "totalAverageForBatch": 6461.92500000149,
+    "batchMinTime": 641,
+    "batchMaxTime": 12123.59999999404,
+    "summaryResults": {
+      "testEntity_17": {
+        "entityName": "testEntity",
+        "numberOfObjects": 17,
+        "averageTime": 7605.79999999702,
+        "totalTime": 15211.59999999404,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 4.7780000000000005,
+        "objectsAverageSize": 2.3890000000000002
+      },
+      "testEntity_15": {
+        "entityName": "testEntity",
+        "numberOfObjects": 15,
+        "averageTime": 2990.5499999970198,
+        "totalTime": 5981.0999999940395,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 4.2219999999999995,
+        "objectsAverageSize": 2.1109999999999998
+      },
+      "testEntity_27": {
+        "entityName": "testEntity",
+        "numberOfObjects": 27,
+        "averageTime": 11433.14999999106,
+        "totalTime": 22866.29999998212,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 7.558,
+        "objectsAverageSize": 3.779
+      },
+      "testEntity_12": {
+        "entityName": "testEntity",
+        "numberOfObjects": 12,
+        "averageTime": 2761.7000000029802,
+        "totalTime": 5523.4000000059605,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 3.3979999999999997,
+        "objectsAverageSize": 1.6989999999999998
+      },
+      "testEntity_10": {
+        "entityName": "testEntity",
+        "numberOfObjects": 10,
+        "averageTime": 1982.2000000178814,
+        "totalTime": 3964.400000035763,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 2.82,
+        "objectsAverageSize": 1.41
+      },
+      "testEntity_25": {
+        "entityName": "testEntity",
+        "numberOfObjects": 25,
+        "averageTime": 11388.40000000596,
+        "totalTime": 22776.80000001192,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 7.002,
+        "objectsAverageSize": 3.501
+      },
+      "testEntity_20": {
+        "entityName": "testEntity",
+        "numberOfObjects": 20,
+        "averageTime": 6774,
+        "totalTime": 13548,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 5.612,
+        "objectsAverageSize": 2.806
+      },
+      "testEntity_22": {
+        "entityName": "testEntity",
+        "numberOfObjects": 22,
+        "averageTime": 11674.60000000894,
+        "totalTime": 23349.20000001788,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 6.167999999999999,
+        "objectsAverageSize": 3.0839999999999996
+      },
+      "testEntity_5": {
+        "entityName": "testEntity",
+        "numberOfObjects": 5,
+        "averageTime": 2800.1500000059605,
+        "totalTime": 5600.300000011921,
+        "numberOfInstances": 2,
+        "objectsTotalSize": 1.414,
+        "objectsAverageSize": 0.707
+      },
+      "testEntity_8": {
+        "entityName": "testEntity",
+        "numberOfObjects": 8,
+        "averageTime": 5208.699999988079,
+        "totalTime": 5208.699999988079,
+        "numberOfInstances": 1,
+        "objectsTotalSize": 1.11,
+        "objectsAverageSize": 1.11
+      }
+    }
+  }

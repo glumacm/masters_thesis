@@ -1,1 +1,29 @@
-{"totalCount":2.335,"totalSyncSuccessCount":2.335,"totalSyncErrorCount":0,"totalTime":1792.5,"totalAverageForBatch":399.44999999552965,"batchMinTime":298.30000001192093,"batchMaxTime":467.69999998807907,"summaryResults":{"testEntity_4":{"entityName":"testEntity","numberOfObjects":4,"averageTime":467.69999998807907,"totalTime":467.69999998807907,"numberOfInstances":1,"objectsTotalSize":0.591,"objectsAverageSize":0.591},"testEntity_3":{"entityName":"testEntity","numberOfObjects":3,"averageTime":331.20000000298023,"totalTime":1324.800000011921,"numberOfInstances":4,"objectsTotalSize":1.744,"objectsAverageSize":0.436}}}
+{
+    "totalCount": 2.335,
+    "totalSyncSuccessCount": 2.335,
+    "totalSyncErrorCount": 0,
+    "totalTime": 1792.5,
+    "totalAverageForBatch": 399.44999999552965,
+    "batchMinTime": 298.30000001192093,
+    "batchMaxTime": 467.69999998807907,
+    "summaryResults": {
+      "testEntity_4": {
+        "entityName": "testEntity",
+        "numberOfObjects": 4,
+        "averageTime": 467.69999998807907,
+        "totalTime": 467.69999998807907,
+        "numberOfInstances": 1,
+        "objectsTotalSize": 0.591,
+        "objectsAverageSize": 0.591
+      },
+      "testEntity_3": {
+        "entityName": "testEntity",
+        "numberOfObjects": 3,
+        "averageTime": 331.20000000298023,
+        "totalTime": 1324.800000011921,
+        "numberOfInstances": 4,
+        "objectsTotalSize": 1.744,
+        "objectsAverageSize": 0.436
+      }
+    }
+  }
