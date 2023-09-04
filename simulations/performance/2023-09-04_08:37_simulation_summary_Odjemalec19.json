@@ -1,0 +1,1 @@
+{"totalSyncCount":3806,"totalCount":3806,"totalSyncSuccessCount":0,"totalRetryCount":0,"simulationTimes":[{"entityTimes":[{"requestUuid":"9825f218-3bc5-4bd8-b950-5233f1289c4b","entityName":"testEntity","syncTime":11452.799999982119,"objectsSize":3.806,"numberOfObjects":27,"type":"SUCCESS"}],"totalTime":11490.59999999404}]}
