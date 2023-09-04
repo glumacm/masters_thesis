@@ -1,0 +1,7 @@
+export enum SyncRequestStatusEnum {
+    STOPPED='STOPPED',
+    IN_PROGRESS='IN_PROGRESS',
+    FINISHED='FINISHED',
+    CANCELED='CANCELED',
+    SUCCESS='SUCCESS'
+}

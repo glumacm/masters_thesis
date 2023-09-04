@@ -1,0 +1,62 @@
+[
+    {
+      "key": 2,
+      "value": {
+        "changes": [
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/secondInput",
+                "value": "kjl"
+              },
+              {
+                "op": "replace",
+                "path": "/firstInput",
+                "value": "kj"
+              }
+            ],
+            "changesDatetime": "2022-11-20T23:42:28.666Z",
+            "changesAppliedOnBE": false
+          }
+        ],
+        "record": {
+          "firstInput": "kj99",
+          "secondInput": "kjl9",
+          "lastModified": "2022-12-30T14:13:47+00:00"
+        },
+        "objectStatus": "in_sync",
+        "localUUID": "a34de48c-0fd0-4194-b892-9fbbda516af0"
+      }
+    },
+    {
+      "key": 3,
+      "value": {
+        "changes": [
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/secondInput",
+                "value": "kjl"
+              },
+              {
+                "op": "replace",
+                "path": "/firstInput",
+                "value": "kj"
+              }
+            ],
+            "changesDatetime": "2022-11-20T23:42:28.666Z",
+            "changesAppliedOnBE": false
+          }
+        ],
+        "record": {
+          "firstInput": "kj99",
+          "secondInput": "kjl9",
+          "lastModified": "2022-12-30T14:13:47+00:00"
+        },
+        "objectStatus": "in_sync",
+        "localUUID": "b34de48c-0fd0-4194-b892-9fbbda516af9"
+      }
+    }
+  ]

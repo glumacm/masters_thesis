@@ -1,0 +1,372 @@
+[
+  {
+    "key": "4904e49c-6d6a-4627-91ef-30b9294db523",
+    "value": {
+      "localUUID": "4904e49c-6d6a-4627-91ef-30b9294db523",
+      "changes": [
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
+            }
+          ],
+          "changesDatetime": "2023-04-09T10:47:04.724Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
+            }
+          ],
+          "changesDatetime": "2023-04-09T10:57:04.319Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+            }
+          ],
+          "changesDatetime": "2023-04-09T10:57:05.444Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
+            }
+          ],
+          "changesDatetime": "2023-04-09T10:57:06.898Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "remove",
+              "path": "/f7"
+            },
+            {
+              "op": "remove",
+              "path": "/f4"
+            },
+            {
+              "op": "remove",
+              "path": "/f3"
+            },
+            {
+              "op": "remove",
+              "path": "/f2"
+            },
+            {
+              "op": "remove",
+              "path": "/f1"
+            },
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+            },
+            {
+              "op": "add",
+              "path": "/id",
+              "value": 61
+            },
+            {
+              "op": "add",
+              "path": "/randomInteger",
+              "value": null
+            },
+            {
+              "op": "add",
+              "path": "/lastModified",
+              "value": "2023-04-09T10:57:19.000Z"
+            }
+          ],
+          "changesDatetime": "2023-04-09T10:57:19.490Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
+            }
+          ],
+          "changesDatetime": "2023-04-09T13:36:02.910Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
+            }
+          ],
+          "changesDatetime": "2023-04-09T13:37:40.468Z",
+          "changesAppliedOnBE": false
+        },
+        {
+          "changes": [
+            {
+              "op": "remove",
+              "path": "/f7"
+            },
+            {
+              "op": "remove",
+              "path": "/f4"
+            },
+            {
+              "op": "remove",
+              "path": "/f3"
+            },
+            {
+              "op": "remove",
+              "path": "/f2"
+            },
+            {
+              "op": "replace",
+              "path": "/description",
+              "value": "CHECK IT OUT! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
+            },
+            {
+              "op": "remove",
+              "path": "/f1"
+            },
+            {
+              "op": "add",
+              "path": "/id",
+              "value": 61
+            },
+            {
+              "op": "add",
+              "path": "/randomInteger",
+              "value": null
+            },
+            {
+              "op": "add",
+              "path": "/lastModified",
+              "value": "2023-04-09T13:37:55.000Z"
+            }
+          ],
+          "changesDatetime": "2023-04-09T13:39:17.657Z",
+          "changesAppliedOnBE": false
+        }
+      ],
+      "record": {
+        "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+        "name": "1 SHOULD TRIGGER CHANGE!",
+        "description": "CHECK IT OUT! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275",
+        "f1": "f000198 data New Sharif Oldies goldies",
+        "f2": "f882 data make it pay",
+        "f3": "f003 data Something DontLikeit",
+        "f4": "f4 77data",
+        "f7": "TEST"
+      },
+      "objectStatus": "in_sync",
+      "lastModified": "2023-04-09T13:39:17.657Z"
+    }
+  }
+]
+
+[
+    {
+      "key": "4904e49c-6d6a-4627-91ef-30b9294db523",
+      "value": {
+        "localUUID": "4904e49c-6d6a-4627-91ef-30b9294db523",
+        "changes": [
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 128af04b-a81d-45ce-a06b-34c860662155"
+              }
+            ],
+            "changesDatetime": "2023-04-09T10:47:04.724Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 7db9a243-3e79-497b-8f3a-0ef057b171e2"
+              }
+            ],
+            "changesDatetime": "2023-04-09T10:57:04.319Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+              }
+            ],
+            "changesDatetime": "2023-04-09T10:57:05.444Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 25926a88-cb7d-4424-8903-adc5b2fd17d6"
+              }
+            ],
+            "changesDatetime": "2023-04-09T10:57:06.898Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "remove",
+                "path": "/f7"
+              },
+              {
+                "op": "remove",
+                "path": "/f4"
+              },
+              {
+                "op": "remove",
+                "path": "/f3"
+              },
+              {
+                "op": "remove",
+                "path": "/f2"
+              },
+              {
+                "op": "remove",
+                "path": "/f1"
+              },
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 945edbd4-e121-4c28-846a-761ee7311dc0"
+              },
+              {
+                "op": "add",
+                "path": "/id",
+                "value": 61
+              },
+              {
+                "op": "add",
+                "path": "/randomInteger",
+                "value": null
+              },
+              {
+                "op": "add",
+                "path": "/lastModified",
+                "value": "2023-04-09T10:57:19.000Z"
+              }
+            ],
+            "changesDatetime": "2023-04-09T10:57:19.490Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 7d17552e-63c7-4058-b8e3-ea1dc5c3f426"
+              }
+            ],
+            "changesDatetime": "2023-04-09T13:36:02.910Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: d322cb61-08e3-4064-810d-d8e3e8cc462e"
+              }
+            ],
+            "changesDatetime": "2023-04-09T13:37:40.468Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "remove",
+                "path": "/f7"
+              },
+              {
+                "op": "remove",
+                "path": "/f4"
+              },
+              {
+                "op": "remove",
+                "path": "/f3"
+              },
+              {
+                "op": "remove",
+                "path": "/f2"
+              },
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 14cae698-9fc2-43ca-aa3b-608fece1a9cc"
+              },
+              {
+                "op": "remove",
+                "path": "/f1"
+              },
+              {
+                "op": "add",
+                "path": "/id",
+                "value": 61
+              },
+              {
+                "op": "add",
+                "path": "/randomInteger",
+                "value": null
+              },
+              {
+                "op": "add",
+                "path": "/lastModified",
+                "value": "2023-04-09T13:37:55.000Z"
+              }
+            ],
+            "changesDatetime": "2023-04-09T13:39:17.657Z",
+            "changesAppliedOnBE": false
+          },
+          {
+            "changes": [
+              {
+                "op": "replace",
+                "path": "/description",
+                "value": "CHECK IT OUT! random uuid: 4c2b1796-3902-4a82-9d71-9f73e76e0275"
+              }
+            ],
+            "changesDatetime": "2023-04-11T20:13:51.951Z",
+            "changesAppliedOnBE": false
+          }
+        ],
+        "record": {
+          "uuid": "4904e49c-6d6a-4627-91ef-30b9294db523",
+          "name": "2 SHOULD TRIGGER CHANGE!",
+          "description": "CHECK IT OUT! random uuid: 6c1b6d47-a226-4c0b-b219-afb37e15dab5",
+          "f1": "f000198 data New Sharif Oldies goldies",
+          "f2": "f882 data make it pay",
+          "f3": "f003 data Something DontLikeit",
+          "f4": "f4 77data",
+          "f7": "TEST"
+        },
+        "objectStatus": "in_sync",
+        "lastModified": "2023-04-11T20:13:51.950Z"
+      }
+    }
+  ]

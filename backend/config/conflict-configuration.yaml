@@ -1,0 +1,26 @@
+conflict_field_groups:
+    TheTest:
+        groups:
+            -
+                field_name: 'last_modified'
+                merge_resolution: 5
+            -
+                field_name: 'name'
+                merge_resolution: 5 # no restrictions
+    entity_name:
+        groups:
+            -
+                field_name: 'field1'
+                merge_resolution: 3
+            -
+                field_name: 'field3'
+                merge_resolution: 1
+            -   
+                field_name: 'field4'
+                merge_resolution: 4
+    testing_example:
+        groups:
+            -
+                field_name: 'f1'
+                merge_resolution: 2
+default_merge_resolution: 2 # Ce pride do spremembe takoj uveljavi spremembe - brez pomisleka
