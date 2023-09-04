@@ -1,0 +1,29 @@
+{
+  "totalCount": 2.335,
+  "totalSyncSuccessCount": 2.335,
+  "totalSyncErrorCount": 0,
+  "totalTime": 2109.699999988079,
+  "totalAverageForBatch": 429.8374999985099,
+  "batchMinTime": 302.90000000596046,
+  "batchMaxTime": 495.5,
+  "summaryResults": {
+    "testEntity_3": {
+      "entityName": "testEntity",
+      "numberOfObjects": 3,
+      "averageTime": 416.67499999701977,
+      "totalTime": 1666.699999988079,
+      "numberOfInstances": 4,
+      "objectsTotalSize": 1.744,
+      "objectsAverageSize": 0.436
+    },
+    "testEntity_4": {
+      "entityName": "testEntity",
+      "numberOfObjects": 4,
+      "averageTime": 443,
+      "totalTime": 443,
+      "numberOfInstances": 1,
+      "objectsTotalSize": 0.591,
+      "objectsAverageSize": 0.591
+    }
+  }
+}

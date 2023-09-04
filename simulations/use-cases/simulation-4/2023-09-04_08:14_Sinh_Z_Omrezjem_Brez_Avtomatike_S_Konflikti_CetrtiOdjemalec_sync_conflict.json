@@ -1,0 +1,1 @@
+{"formatName":"dexie","formatVersion":1,"data":{"databaseName":"sync_conflict","databaseVersion":1,"tables":[{"name":"example_table","schema":"objectUuid,conflicts,changes,record,lastModified","rowCount":0}],"data":[{"tableName":"example_table","inbound":true,"rows":[]}]}}
