@@ -1,0 +1,36 @@
+{
+  "agentId": "PrviOdjemalec",
+  "simulationName": "Sinh_Z_Omrezjem_Brez_Avtomatike",
+  "steps": [
+    {
+      "entityName": "testEntity",
+      "action": "UPSERT",
+      "data": {
+        "firstInput": "Objekt1_1_1",
+        "secondInput": "Objekt1_2_1"
+      },
+      "recordId": "147c5a00-a669-4c16-9db0-152d0705ee77"
+    },
+    {
+      "entityName": "testEntity",
+      "action": "UPSERT",
+      "data": {
+        "firstInput": "Objekt2_1_1",
+        "secondInput": "Objekt2_2_1"
+      },
+      "recordId": "21abacaa-e1ce-475f-9573-201e44f437a3"
+    },
+    {
+      "entityName": "testEntity",
+      "action": "UPSERT",
+      "data": {
+        "firstInput": "Objekt3_1_1",
+        "secondInput": "Objekt3_2_1"
+      },
+      "recordId": "5334f3ae-6db1-4b58-ac3b-603ca01ad83f"
+    },
+    {
+      "action": "BATCH_SYNC"
+    }
+  ]
+}
