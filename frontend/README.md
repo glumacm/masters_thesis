@@ -6,32 +6,10 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
 
 Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
 
-## Code scaffolding
-
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
 
-
-# PURPOSE OF THIS LIBRARY
-
-We want to give existing projects option to easily add sync mechanism to their projects - not to use all new technology that needs refactoring of application data structure!!!!!!!!!!!!!
-So next time you again check AUTOMERGE JSONPatch,JSONDiff literature, please do NOT jump to conclusions, since we cannot use all of the proposed ideas -> those ideas are extremely helpful when
-building NEW software!!!
 
 # Custom docs
 
@@ -39,45 +17,37 @@ building NEW software!!!
 2. add configuration for workers
 3. Added all packaged code from old repo (packages)
 
+# Short description
 
-# How things should work
+This codebase represent an attempt to create generic synchronization logic for PWA applications using TypeScript. The logic should be used on client side and should be used in combination with logic from `../ backend` folder which represents generic synchronization logic for PHP+Symfony oriented backend projects.
 
-We have `sync` DB which should be referenced as `CURRENT DB`. This database will be updated each time, developer calls update function.
-We will have `syncing` DB which will hold same data structure as in `CURRENT DB`, only difference is that in this DB we will set status of an entry to `in_sync` when we start sync process for an object of an entity.
-We should have two different sync processes:
-- one when developer calls UPDATE we should try to perform SINGLE sync process (only one record should be sent to BE)!
-- one when sync interval is executed then we should do a BULK sync process!
+This solution works based on IndexedDB databases, web workers and some additional libraries that gives us leverage with developing. 
+Developers interested in using this code should note, that this code should be considered as a suppliment (or package) to existing TypeScript projects. In order to profit from this synchronization process, developers should call this logic whenever they change objects/data in their applications which they want to synchronize.
 
-The general idea about sync currently:
-- We send sync data to BE, if O.K we receive status COMPLETE
-- We send sync data to BE, our data was merged with older version of BE object -> FAIL
-    * this should trigger RETRY process
+In order to start the synchronization logic, you need to start instance of `SynchronizationLibrary` which can be found at `./src/app/packages/main.ts`. This class is the "entry point" of the synchronization process inside TypeScript application. When we start an instance of the "package", the logic will create two web workers:
+- one for controlling synchronization process -> logic inside `./src/app/packages/workers/object-oriented/sync-entity-clean.worker.ts`.
+- one for regular checks if objects marked for synchronization were finished after some interval -> logic inside `retry-management.ts`.
 
+We use this two web workers so that they perform as "two seperate threads" which enables us to run logic "in background" - separated from main thread (main loop of execution)
 
-New idea about merging data:
-- currently idea is that FE will call BE for data and calculate differences and then process accordingly
-- New idea is that we shift calculation to BE.
+Even though this is not properly structured repository of a package, we will refer to the logic in this repository as "a package".
+When main instance of the package is started it will eventually (depends of when some use cases are executed) create (and read) the following databases:
+* `sync` -> database used for storing all data that user/developer wants to use as part of synchronization process
+* `sync_conflict` -> data that represents conflicted data when at some point we try to synchronize data from `sync`
+* `sync_temp` -> data that has the same structure as `sync` but we use it to store temporary data while some data from `sync` is locked due to being part of synchronization process.
 
-The new idea goes like this:
-- user is updating however he wants on UI. When the time is right, we will send data for sync to BE (still using `syncing DB`) and then:
-    * if everything O.K, then ok
-    * if timeout -> use retry
-    * if conflict , return current server object, with mapper for conflicted data
-        + we will then give developer option to subscripbe to the conflict
-        + developer will recive map of fields that are conflicted and option to resolve data based on `be object field value` and `current object field value`.
-        + when developer resolves the issue, we will send data to BE. If BE data did not change in-between then OK. If data changed, check for conflicts and possibly return the last conflicted fields.
-            - this process will repeat itself until last field is conflicted. This however I do not expect to receive more than 2-3 repeats (it really depends how many people work on the same OBJECT at the SAME TIME)
-- Retry process will be used for two cases:
-    * when we hit Timeout and we do not know if request has ended
-        + then we send retry data to BE (requestUuid and record data of LIMBO request)
-    * What is the second use-case???
-        + I think the second one is when we send data to BE but we do not hit timeout, but our reqeust got cancelled because of ?NETWORK error?
-        + if first bullet point is the right use-case, then this will need a lot of thinking because this use-case is hard to reproduce and identify!!!
-    * another use-case -> admin set wrong configuration and therefore sync-breaks. After admin would fix configuration, developer can again manually request retry from user.                                                                                                                                                                                                                                                                                                         
+In order to get some status updates and some notifications from the package, developers can subscribe to `SynchronizationLibrary.eventsSubject`. This is `Subject<SyncLibraryNotification>` type of variable that will emit all new messages that synchronization package will generate through each available scenario.
 
+Main scenarios that this package covers are:
+* storing objects (that we want to use as part of synchronization) to `sync` database
+* automatic/manual execution of synchronization process
+    * successful synchronization
+    * failed synchronization (due to problem on backend)
+    * failed synchronization (due to loss of network connection)
+    * failed synchronization (due to timeout of synchronization request to backend)
+    * conflicted data between sent data from client (frontend) and existing data in backend's database
 
-## Potencial future work
-* How to redirect errors from authorization problem -> developer should have some authorization on BE but when sync lib find authorization problems for sync requests it needs to notify developer's main thread about the problem.
+Synchronization package also includes some basic recognision of network availability. When we connect/disconnect to/from the network, then this is recognised via `networkStatus$` variable in `./src/packages/main.ts`. Based on network status change, we also also update synchronization web worker so that we do try to send requests to backend since there is no network connection. 
 
 
 # TypeScript/JavaScript good to know limitations
@@ -99,69 +69,44 @@ for await (let item of [1,2,3,4]) {
 ```
 
 
-## Unit/integration tests
-
-* to run a test I currently execute the following command: `ng test --main src/app/packages/tests/first-integration-test.spec.ts` which should (according to documentation) run tests in one file - but it seems that `app.component.spec.ts` still gets executed
-even without specifying that filename (that is it's body is commented out).
-Currently using `ng CLI v15.6.1
-
 # HTTPS issue
 
-V primeru, da testi/simulacija ne bo dovolila posiljanje zahtev na backend, brez da bi se prvo sprejelo certifikat v 
-chrome browserju (ko gremo na url, ki ga simulacija poklice), se lahko v CADDY nastavivah povozi, da ne bo vec
-omogocen HTTPS ampak bi potem klical kar HTTP - seveda bo potrebno v logiki FE-ja popraviti URL do BE-a.
-
-V CaddyFile dodamo sledece:
+It seems that CADDY server which we use as backend server for backend's part of synchronization process has some problems with certificates. If you are unable to actually run application via HTTPS, you can use the following change in the `CaddyFile`:
 ```
 {
     # Debug
     {$CADDY_DEBUG}
-    auto_https off # trenutno je to zakomentirano
-    local_certs # trenutno imam to moznost vklopljeno!!!
+    auto_https off # This option should allow Caddy server to run HTTP request instead of HTTPS
+    local_certs
 }
 ```
 
-Ko sem v firefox-u dodal oba Caddy Local Authority certifikata, je potem URL deloval avtomatsko!!! 
+If you use this configuration, you need to actually change any reference in `frontend` logic from `https://` to `http://`.
 
-# Simulation
 
-npx mocha simulation/simulation-with-steps.spec.js
+Howerver, we would recommend to rather get Caddy's root and CA certificates from docker container and import them to Chrome or Firefox (in MacOS you also need to set certificates `Trust` settings to `Always`) - again. This repository is research based implementation. So all the instructions should be used on local environments and not production environments!
 
-## Zahteve
-* pred zacetkom namesti JAVO v12 -> v12.0.2 (dostopno na: https://www.oracle.com/java/technologies/javase/jdk12-archive-downloads.html#license-lightbox)
-* dodaj `selenium-server-4.10.0.jar` datoteko v `/simulation` mapo -> dostopno tukaj: https://github.com/SeleniumHQ/selenium/releases/
-* prenesi VSAJ chrome WebDriver (dostopno na: https://chromedriver.chromium.org/downloads) v114.0.5735.90
-* dodaj `chromedriver_mac64` v PATH zato, da bo `chromedriver` skripta/komanda dostopna v izvajalnem okolju
-* Pozeni selenium server : `java -jar selenium-server-4.10.0.jar standalone`
-* Pozeni teste: `mocha simulation/seleniumSimulation.spec.js`
 
-Simulation is planned with Selenium (and Mocha as test runner).
-To run selenium grid, download JAR file for selenium server and then run:
-`java -jar selenium-server-4.10.0.jar standalone`
+## Prerequisites for using simulation (on MacOS-M1 based)
+* install java v12(v12.0.2) -> available at https://www.oracle.com/java/technologies/javase/jdk12-archive-downloads.html#license-lightbox
+* add `selenium-server-4.10.0.jar` (available at: https://github.com/SeleniumHQ/selenium/releases/) file to `/simulation` folder
+* add a chrome WebDriver (the last driver that worked correctly was v114.0.5735.90) -> available at https://chromedriver.chromium.org/downloads
+* add `chromedriver_mac64` to PATH, so that we can access the driver's execution file inside current context
+* run simulation: `mocha simulation/seleniumSimulation.spec.js`
+* [optionally] if you wish to run simulation with selenium server you can run: `java -jar selenium-server-4.10.0.jar standalone` (but in our case the simulation without server was good enough) 
 
-To run current tests, run:
-`mocha simulation/seleniumSimulation.spec.js`
 
-V primeru da moramo dodati chrome, ki ima vecjo verzijo, kot je trenutni uradni stable version. Ga moramo prenesti iz:
-https://googlechromelabs.github.io/chrome-for-testing/
-
-Nato v mocha skripti popravimo pot do `Google Chrome for testing` aplikacije:
+If you need to add Chrome with different (newer) version as described (or you currently use) you need to download it from https://googlechromelabs.github.io/chrome-for-testing/.
+Then you need to add path to this `Google Chrome for testing application` inside the simluation file, by adding this command:
 ```
 chromeOptions.setChromeBinaryPath('<potDo>/Google\ Chrome\ for\ testing.app/Contents/MacOS/Google\ Chrome\ for\ Testing');
 ```
 
-Prav tako bo zelo verjetno potrebno pognati sledeci ukaz:
+Very likely you will also need to run this command
 ```
-sudo xattr -cr  <potDo>/Google\ Chrome\ for\ testing.app>
+sudo xattr -cr  <path_to>/Google\ Chrome\ for\ testing.app>
 ```
 
-Najbolj pomembno v trenutni verziji je bilo, da sem nastavil path preko `/etc/paths.d/`. Tam lahko definiram pot in ko popraivm tam pot, se bo takoj popravil PATH (ko restartamo terminal).
-
-Zelo je potrebno pazit, ker vsakic ko dobi chrome avtomatski update, se bo verzija nastavila na verzijo update-a, tudi ce v UI-ju tega ne vidimo.
-Zato je pomembno, da se dobi bodisi binaryje za specificno verzijo in potem vezemo chromedriver na to verzijo, ali pa vedno znova prenesemo ustrezno chromedriver verzijo (glede na trenutno verzijo Chrome brskalnika na racunalniku).
-
-
-
-## TODOs
-
-- Add logic to handle `ERR_BAD_REQUEST`
+For us personally the most beneficial instruction related to Chrome version was to add path to chrome web driver inside `/etc/paths.d/<name_of_path_variable>` (terminal restart required).
+V primeru da moramo dodati chrome, ki ima vecjo verzijo, kot je trenutni uradni stable version. Ga moramo prenesti iz:
+https://googlechromelabs.github.io/chrome-for-testing/
