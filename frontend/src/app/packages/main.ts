@@ -15,7 +15,6 @@ import { sync_entity_records_batch, ExampleClassForComlinkProxy } from "./servic
 import { SentryClient } from "./services/monitor";
 // import { AutoMergeWrapper } from "./services/automerge-wrapper";
 import { ConflictService } from "./services/conflict-service";
-// import { getDataFromEncodedRecord } from "./utilities/automerge-utilities";
 import { SyncLibraryNotification } from "./models/event/sync-library-notification.model";
 import { plainToInstance } from "class-transformer";
 import { SyncLibraryNotificationEnum } from "./enums/event/sync-library-notification-type.enum";

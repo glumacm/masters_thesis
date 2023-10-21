@@ -551,7 +551,6 @@ export class SyncEntityClean {
      * na novo generira.
      */
     async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SyncChamberRecordStructure) {
-        // async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SynchronizationSyncEntityDecodedRecord) {
 
         const syncEntityResponseInstance = classTransformer.plainToInstance(SyncEntityResponse, success);
 
