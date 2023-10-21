@@ -40,6 +40,7 @@ export const CONFIGURATION_CONSTANTS = {
     DEBUG_MODE: true, // boolean
     ALLOW_RETRY_PROCESS: true,
     SIMULATION_COUNT_OBJECT_SIZES: true,
+    SENTRY_DNS: 'https://5f37ad3e5884446991daea73d440d58a@o4504900918837248.ingest.sentry.io/4504900923097088', // change accordingly
 }
 
 

@@ -10,7 +10,7 @@ export class StopwatchService {
     }
 
     start() {
-        this.startTime = performance.now(); // performance.now --> cas v milisekundah
+        this.startTime = performance.now(); // performance.now --> time in miliseconds
     }
 
     stop() {

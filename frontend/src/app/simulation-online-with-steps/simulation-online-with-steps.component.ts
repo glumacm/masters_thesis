@@ -51,7 +51,6 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     'simulationFinished': new FormControl<Boolean>(false),
   })
 
-  // sinhronizacijska komponenta
   //@ts-ignore
   private syncLib: SynchronizationLibrary;
 
@@ -99,10 +98,10 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     if (!keepOldSizeCounts) {
       this.syncLib.resetSyncObjectSizeCount(true);
     }
-    let concurrencyProblem = false; // Moral sem nastaviti spremenljivko v tem kontekstu, ker drugace se vrednost ni pravilno zaznala znotraj te funkcije....
+    let concurrencyProblem = false; // need to set variable here otherwise the value was not properly changed
     this.eventsSubscription = SynchronizationLibrary.eventsSubject.subscribe(
       (event: SyncLibraryNotification) => {
-        this.consoleOutput.output(`SIMULATION -> events subscription ... .this is what ia get   `, event);
+        this.consoleOutput.output(`SIMULATION -> events subscription:`, event);
         if (event.type === SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE) {
           SynchronizationLibrary.eventsSubject.next({ type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED, message: 'finished' } as SyncLibraryNotification);
         }
@@ -158,7 +157,7 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
         SyncLibraryNotification,
         {
           type: SyncLibraryNotificationEnum.SIMULATION_SUMMARY_ERROR,
-          message: 'Prislo je do napake pri ustvarjanju porocila za simulacijo',
+          message: 'Error while creating simulation report/summary',
           error: exception
         } as SyncLibraryNotification
       )
@@ -447,10 +446,10 @@ export class SimulationOnlineWithStepsComponent implements OnInit {
     if (entityName === 'TestEntity') {
       await axios.get(`${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/refactored/initiate_initial_be_db_state`).then(
         (response) => {
-          this.consoleOutput.output(`Say yes to life!`, response);
+          this.consoleOutput.output(`Response:`, response);
         },
         (error) => {
-          this.consoleOutput.output(`The YEs Man! `, error);
+          this.consoleOutput.output(`Error: `, error);
         }
       )
     }

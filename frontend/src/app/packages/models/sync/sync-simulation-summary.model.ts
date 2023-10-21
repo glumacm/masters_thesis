@@ -17,22 +17,3 @@ export class SyncSimulationSummary {
     public totalTime: number;
 
 }
-
-
-/**
- * {"totalSyncCount":436,"totalCount":436,"totalSyncSuccessCount":0,"totalRetryCount":0,"simulationTimes":[
-{"entityTimes":{"f9c3b333-adf0-4ff0-a83d-f7d067fef112":
- * {"entityName":"testEntity","syncTime":502.80000001192093,
- * "objectsSize":0.436,"numberOfObjects":3,"type":"SUCCESS"}
- * },"totalTime":517.0999999940395}]}
- */
-
-// class SyncSimulationSummary
-// {
-//     public int $total_sync_count;
-//     public int $total_count;
-//     public int $total_sync_success_count;
-//     public int $total_retry_count;
-//     public mixed $simulation_times;
-//     public int $total_time;
-// }

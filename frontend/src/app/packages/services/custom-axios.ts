@@ -91,8 +91,6 @@ export class CustomAxios {
             if (this.mockedResponse?.mockedResponseType) {
                 // if (stubType === CustomAxiosMockedResponseEnum.SUCCESS) {
                 if (this.mockedResponse.mockedResponseType === CustomAxiosMockedResponseEnum.SUCCESS) {
-                    console.log('having fun in the daytime');
-
                     // moxios.stubRequest(url, this.mockedResponse?.mockedResponseData as any); // modkedData=  {status: 200,responseText: '…'}
                     moxios.stubRequest(url, this.mockedResponse?.mockedResponseData as any); // modkedData=  {status: 200,responseText: '…'}
                 } else if (this.mockedResponse.mockedResponseType == CustomAxiosMockedResponseEnum.ECONNABORTED) {

@@ -2,13 +2,13 @@ import sizeof from "object-sizeof";
 
 export class DataSizeService {
     /**
-     * Ta razred bi uporabljal kot PLACEHOLDER za racunanje objektov,
-     * na tak nacin sklepam, da bi lahko implementiral dinamicno resitev, ki 
-     * bi lahko preklapljala med nacinom, ki racuna velikost objektov ali ne...
-     * predvsem uporabno v primeru, ko bi rad delal casovno analizo
+     * This class should be used as placeholder for calculating data sizes of the objects.
+     * This way we think we can implement dynamic solution which will be able to switch between
+     * scenarios where we need to calculate objects and where we do not. Especially useful when
+     * doing the performance analysis, so that this calculation does not take execution time for nothing.
      */
     static readonly BYTES_DIVIDER: number = 1;
-    static readonly KILOBYTES_DIVIDER: number = Math.pow(10,3); // Uporabimo kar splosno delitev, ne bomo skrbeli za 1024
+    static readonly KILOBYTES_DIVIDER: number = Math.pow(10,3); // Will use 1000 division - will not be conserned with technical detail of 1024
     static readonly MEGABYTES_DIVIDER: number = Math.pow(10,6);
 
     private currentSizeCount: number = 0;

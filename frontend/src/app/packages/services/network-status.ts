@@ -17,7 +17,6 @@ export class NetworkStatus {
         this.customOutput = new CustomConsoleOutput('NetworkStatus', CONSOLE_STYLE.sync_lib_main_positive_vibe);
         this.customOutput.closeGroup();
         if (preExistingExecutionCondition) {
-            this.customOutput.output(`Who data`, preExistingExecutionCondition)
             this.firstExecution.next(false);
         }
 

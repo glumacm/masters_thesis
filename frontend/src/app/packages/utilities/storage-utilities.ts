@@ -41,7 +41,6 @@ export async function storeNewObject(
     }
 
     if (existingConflictEntry) {
-        // IMAMO PODATEK ZE V CONFLICTU in v tem primeru ne pustimo nadaljnega shranjevanja
         const event = plainToInstance(SyncLibraryNotification, { createdAt: new Date(), type: SyncLibraryNotificationEnum.ALREADY_CONFLICTED, message: `Object with uuid: ${objectUuid} is already conflicted. Cannot store current data, please first solve conflict and then try to store again.` });
         if (sendNotificationProxy) {
             sendNotificationProxy(event);
@@ -52,15 +51,14 @@ export async function storeNewObject(
         return {resultData: null, tempDB, conflictDB, syncDB} as StoreNewObjectResult;
     }
 
-    // USE-CASE ZA TEMP
+    // USE-CASE for TEMP data
     const retrievedTempDB = tempDB; //await this.getTempDB();
     const existingTempEntry = retrievedTempDB.tableExists(entityName) ? (await retrievedTempDB.table(entityName).get(objectUuid)) : undefined;
     if (
         existingTempEntry
     ) {
-        // const dataFromTemp = cloneSyncObjectWithEncoded(existingTempEntry as any) as SyncChamberRecordStructure; // TODO: Spremeniti tip ki ga damo v funkcijo in ki ga dobimo iz funkcije
+        // const dataFromTemp = cloneSyncObjectWithEncoded(existingTempEntry as any) as SyncChamberRecordStructure; //
         const dataFromTemp = cloneDeep(existingTempEntry) as SyncChamberRecordStructure;
-        // Ta zadeva naredi nekaj kar zaenkrat ne razumem
         const dataToInsert = await syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectUuid, objectData, dataFromTemp);
 
         (await retrievedTempDB.table(entityName)).put(dataToInsert, objectUuid);
@@ -74,9 +72,9 @@ export async function storeNewObject(
         return {resultData: dataToInsert, tempDB, conflictDB, syncDB} as StoreNewObjectResult;
     }
 
-    // Kaksna je razlika med tem, da ugotoivm, da moram nastaviti TEMP preko syncing in pre-existing TEMP?
+    // What is the difference when I recognize that I need to set TEMP from syncing and pre-existing TEMP? Probably deprecated question.
     const retrievedSyncDB1 = syncDB; // await this.getSyncDB();
-    const existingEntry: SyncEntryI = retrievedSyncDB1.tableExists(entityName) ? await retrievedSyncDB1.table(entityName).get(objectUuid) : undefined; // TODO: Manjka logika, ki bo existingentryju dodala nove podatke , ker drugace se povozijo prejsnej spremembe
+    const existingEntry: SyncEntryI = retrievedSyncDB1.tableExists(entityName) ? await retrievedSyncDB1.table(entityName).get(objectUuid) : undefined; // Probably deprecated: missing logic that will add new data to existing entry otherwise old data is overriden
 
     if (
         existingEntry &&
@@ -111,7 +109,7 @@ export async function storeNewObject(
 
     // Removed check and initialise entityName table and added to top of function
 
-    // V tem trenutku imamo sigurno tabelo `entityName` v syncDB
+    // in this case we are sure that schema for `entityName` exists in the syncDB
     const preExisting: SyncEntryI | undefined = await (syncDB).table(entityName).get(objectUuid);
 
     let dataToReturn: SyncChamberRecordStructure = {} as SyncChamberRecordStructure;

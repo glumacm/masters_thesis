@@ -1,4 +1,4 @@
-// Uporabljeno samo za simulacijo - ni namenjeno za nadomestilo TestEntity razreda, ki ga lahko posljemo v sync procesu.
+// Used only for simulation - not intended to substitute TestEntity class which we use in sync process
 export class TestEntity {
     //@ts-ignore
     firstInput: string;

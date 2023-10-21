@@ -76,13 +76,6 @@ class ExampleClassForComlinkProxy {
 }
 
 
-export abstract class SayItAintSo {
-  static readonly fooFunction = ()=> {
-    return 'Example 2';
-  }
-}
-
-
 export function requestStatusCheck(entityName: string, data: SyncRequestStatusRequest) {
   return axios.post(
     `${CONFIGURATION_CONSTANTS.SERVER_BASE_PATH}/${CONFIGURATION_CONSTANTS.SYNC_REQUEST_STATUS_PATH_NAME}`,
