@@ -37,18 +37,6 @@ class GenericService
         $this->logger = $logger;
 
     }
-    public function getHappyMessage(): string
-    {
-        $messages = [
-            'You did it! You updated the system! Amazing!',
-            'That was one of the coolest updates I\'ve seen all day!',
-            'Great work! Keep going!',
-        ];
-
-        $index = array_rand($messages);
-
-        return $messages[$index];
-    }
 
     public function get_class_from_string(string $class_name): ?ReflectionClass
     {
@@ -81,7 +69,6 @@ class GenericService
      * Long story short: If your entity has a composite primary key, you'll need to use $meta->getIdentifierFieldNames() instead.
      */
     private function find_identifier_value_in_modified_data(array $data, string $identifier): mixed {
-        // vrniti mora value za ID oz. podatek, ki skrbi za unikatno identifikacijo
         if (!$data) {
             return null;
         }
@@ -96,14 +83,13 @@ class GenericService
     private function remove_class_prefix_from_casted_object(array $fe_item, string $class_name): array
     {
         /**
-         * $fe_item je array, ker to je podatek, ki ga dobimo iz FE-ja v JSON-u in trenutno ne vidim razloga,
-         * da bi to pretvarjal v nek specificen objekt.
+         * $fe_item is an array, because this is data that we receive from FE as JSON. Currently we do not see
+         * any need to convert array to any specific object.
          *
-         * To funkcijo rabimo v primeru:
-         *
+         * We need this function in case:
          * $keys_and_values_for_entity = (array) $some_object_entity;
          *
-         * ker v takem primeru nam `kljuce` vraca s celotno potjo razreda iz katerega izkaja entiteta/instanca!!!
+         * in this use-case we get all keys that include the full path of the class/entity (with included namespace)
          */
         $reformatted_fe_item_array = [];
         foreach ((array)$fe_item as $key => $value) {
@@ -129,28 +115,25 @@ class GenericService
     ): void
     {
         $class_name_to_modify = $data_from_request->class_name;
-        $modified_data = $data_from_request->object_data; // podatki so asociativna tabela
+        $modified_data = $data_from_request->object_data; // data as associative array
         $is_update = true;
 
-//        $actualEntity = $this->serializer->deserialize(json_encode($modified_data),$class_name_to_modify,'json');
         $actualEntity = $this->serializer->deserialize($this->serializer->serialize($modified_data, 'json',),$class_name_to_modify,'json');
         $real_modified_data = $this->remove_class_prefix_from_casted_object((array)$actualEntity, $class_name_to_modify);
 
         $test_normalizer = new ObjectNormalizer(null, new CamelCaseToSnakeCaseNameConverter());
         $test = new Serializer([$test_normalizer]);
 
-        $gonna_makeit = $test->normalize($actualEntity);
+        $test_normalization = $test->normalize($actualEntity);
 
         // TODO: This needs work. If I do not specify ID in the root object and specify ID in the change data, this will go into UPDATE mode...
-        // ... need to think if this is desired workflow.
         $id_value = $this->find_identifier_value_in_modified_data($modified_data, $this->get_entity_identifier_property($class_name_to_modify));
 
         if (!$id_value) {
             $is_update = false;
-//            throw new NotFoundHttpException('Nimamo ID-ja'); // TODO: Deluje kot da bi lahko to vrgli stran, ker ta if samo pretvori update v insert
+//            throw new NotFoundHttpException('Missing ID'); // TODO: probably can remove this line since this if is mostly used to convert check flag from UPDATE to INSERT
         }
 
-        // TODO: Seveda predpostavljamo, da obstaja repository za naveden object!
         try {
             $repository = $this->findRepositoryFromString($class_name_to_modify); // 'App\Entity\TheTest'
         } catch (Exception $e) {
@@ -183,33 +166,32 @@ class GenericService
                 throw new SynchronizationException(SynchronizationExceptionCode::ENTITY_CLASS_NOT_FOUND);
             }
             /**
-             * TODO: Kaj pa ce objekt zahteva obvezna polja?
-             * Po spremembi polja 'description' v TheTest entity-ju v NON-NULLABLE, vidimo, da se lahko
-             * instanca za entity ustvari tudi brez 'description', pomembno je le, da je podatek prisoten,
-             * ko ga shranimo. Torej, to pomeni, da prazno instanco lahko naredimo, FrontEnd pa mora poskrbeti, da v
-             * primeru INSERT-a vnese vse OBVEZNE podatke!
+             *
+             * TODO: What if object has required fields?
+             *
+             * After we change `description` field in TheTest entitty to NON-NULLABLE, we can see
+             * that an instance for the entity is created without `description` field. The only thing that is necessary
+             * is that we receive this field when data is send as update/insert (so that we receive it from FE) before we save data.
+             * So this menas that we can create empty instance, but FE needs to require this data from user before sending it to BE
+             * otherwise on `save/persist` function on the BE, we will receive error if data is not provided!
              */
             $test_db_item = $reflection_class->newInstance();
 
         }
-        /**
-         * Potrebno bo narediti sistem, ki bo preveril kaj je identificator za objekt. Privzeto lahko recemo ID,
-         * ampak nekatere aplikacije lahko uporabljajo nek drug UNIQUE column.
-         */
 
 
         $decoded_db_item = json_decode(json_encode($test_db_item));
-//        $test_example = new JsonDiff($decoded_json_content, $decoded_db_item, JsonDiff::COLLECT_MODIFIED_DIFF);
 
+        /**
+         * We presume that we will always receive JSON as result and therefore we can get 'key' without transformation
+         */
         // Predpostavimo da bomo dobili vedno JSON rezultat in posledicno pomeni, da bomo
 //         ... lahko brez pretvorbe dobili 'key'.
-        // primer imena entitete 'App\Entity\TheTest', 'App\Controller\TestFu' , za spremenljivko $class_name
-        $changes = $this->update_object_by_fields($real_modified_data, $class_name_to_modify , $test_db_item  ); // Ce bo NULL bomo ignorirali zadevo, verjetno.
+        // Example of entity name 'App\Entity\TheTest', 'App\Controller\TestFu' , for $class_name variable
+        $changes = $this->update_object_by_fields($real_modified_data, $class_name_to_modify , $test_db_item  );
         if ($changes) {
             /**
-             * FLUSH je najbolje, da je klican po končanih batch spremembah. Če delamo spremembe en objekt za drugim
-             * npr. v for zanki, je dobro narediti flush po for zanki!
-             *
+             * We presume that we should call FLUSH after all batch changes are done.
              */
             $repository->save($changes, flush: true, merge: $is_update);
         }
@@ -224,27 +206,24 @@ class GenericService
     public function update_object_by_fields(array $fields_with_values, string $class_name, mixed $object_to_change): mixed
     {
         /**
-         * Za razmisliti, ker lahko bi popravili logiko, da v primeru, da nekega fielda ne najde, da ga ignorira,
-         * vendar se vedno bi za ostale delovalo/posodobilo. Ker trenutno bo delovalo tako, da ne bo nic posodobilo,
-         * ce bo vsaj pri enem fieldu napaka.
+         * For consideration: if we do not find a field, we could ignore it? This would allow others to be updated.
+         * Because currently it will not update anything if an error is triggered for at least one field.
          */
 
         /**
-         * VELIK PROBLEM!!!!
+         * Big problem: Id is not cloned
          * Id se ne klonira!
          */
-        $object_to_change_copy = $object_to_change; // Ker ce pred errorjem popravimo en field, se zna ta sprememba poznati po napaki.
+        $object_to_change_copy = $object_to_change; // If we change a field before an error then this change could be still visible after an error
         try {
             $reflection_class = new ReflectionClass($class_name);
-            // TODO: Problem, ker nekateri fieldi se ne pretvorijo pravilno. Primer: 'last_modified' dobimo kot 'lastModified' v $fields_with_values...
-            // ... ta problem sem zacasno obsel tako, da sem v fields_with_values poslal array podatkov, ki so pridobljeni iz deserializiranega objekta specificne entitete (nad katero se dela upsert).
+            // Problem: Some fields are not properly converted. E.g. 'last_modified' is actually 'lastModified' inside $fields_with_values variable.
+            // We bypass this error by sending array into $fields_with_values that are retrieved from deserializing object of specific entity (from which we will execute UPSERT action)
             foreach ($fields_with_values as $key =>$value ) {
-                // CE property/key ne obstaja, bo prislo do errorja
+                // If property/key does not exist then an exception is triggered
                 try {
                     $sa_brodom = $reflection_class->getProperty($key);
-                    //                dump('Test is initialized: ' . $sa_brodom->isInitialized($object_to_change_copy));
-                    //                dump($sa_brodom->getType());
-                    if ($sa_brodom->getType()->getName() == 'DateTime') {
+                    if ($sa_brodom->getType()->getName() == 'DateTime') { // we need to manually convert Date
                         $sa_brodom->setValue($object_to_change, date_create_from_format('Y-m-d H:i:s', $value));
                     } else {
                         $sa_brodom->setValue($object_to_change_copy, $value);
@@ -255,11 +234,6 @@ class GenericService
             if ($exception->getCode() == -1) {
                 # just testing when we do not understand the error
             }
-            $this->logger->warning('------------------------   Some errors');
-            $this->logger->warning($this->serializer->serialize($exception, 'json'));
-//            dump('What is the error data:');
-//            dump($exception->getCode());
-//            dump(get_class($exception));
             return null;
         }
 
@@ -326,9 +300,9 @@ enum SynchronizationExceptionCode {
 class SynchronizationPostData {
     public readonly string $class_name;
     public readonly mixed $object_data;
-    public readonly mixed $id; // potrebujemo, ker po deserializaciji, id ni vec dostopen. Lahko pa ga prekopiramo iz object_data preden naredimo deserializacijo
-    public readonly mixed $action; // Mogoce bi preko tega povedali kaj tocno smo naredili?
-    public readonly ?\DateTime $last_db_modified; // isti podatek kot ga imamo v tabeli v DB za to entiteto. Ker preko tega bomo vedli, ali lahko potrdimo spremembo na DB ali ne
+    public readonly mixed $id; // we need it because after deserialization id is not accessible anymore. However we can copy it from `object_data` before we do the deserialization
+    public readonly mixed $action;
+    public readonly ?\DateTime $last_db_modified; // same data that we have in DB table for the entity. From this data we recognize if data is allowed to be updated or not
     public function __construct($class_name, $object_data, $action = null, ?string $last_db_modified = null, mixed $id = null)
     {
         $this->class_name = $class_name;
@@ -362,15 +336,13 @@ class ApiNameConverter implements NameConverterInterface
 {
     public function denormalize(string $propertyName): string
     {
-        // TODO: Implement denormalize() method.
-        // kaj narediti ko se deserialize pozene
+        // Custom action after deserialize action is called
         return $propertyName ? u($propertyName)->snake() : $propertyName;
     }
 
     public function normalize(string $propertyName): string
     {
-        // TODO: Implement normalize() method.
-        // kaj narediti ko se serialize pozene
+        // Custom action after serialize action is called
         return $propertyName ? u($propertyName)->camel() : $propertyName;
     }
 }
@@ -379,15 +351,13 @@ class ApiNameConverterOnlySnake implements NameConverterInterface
 {
     public function denormalize(string $propertyName): string
     {
-        // TODO: Implement denormalize() method.
-        // kaj narediti ko se deserialize pozene
+        // Custom action after deserialize action is called
         return $propertyName ? u($propertyName)->snake() : $propertyName;
     }
 
     public function normalize(string $propertyName): string
     {
-        // TODO: Implement normalize() method.
-        // kaj narediti ko se serialize pozene
+        // Custom action after serialize action is called
         return $propertyName ? u($propertyName)->snake() : $propertyName;
     }
 }
@@ -395,17 +365,6 @@ class ApiNameConverterOnlySnake implements NameConverterInterface
 
 class SynchronizationSyncEntityPostData
 {
-    /*
-         entityName: string;
-    data: SynchronizationSyncEntityRecord[];
-}
-
-export interface SynchronizationSyncEntityRecord {
-    localUUID: string;
-    lastModified: Date | null;
-    record: any;
-}
-     */
     public string $entity_name;
 
     public string $job_uuid;
@@ -414,45 +373,6 @@ export interface SynchronizationSyncEntityRecord {
      * @var SynchronizationSyncEntityRecord[]
      */
     public $data;
-
-//    /**
-//     * @return string
-//     */
-//    public function getEntityName(): string
-//    {
-//        return $this->entity_name;
-//    }
-//
-//    /**
-//     * @param string $entity_name
-//     */
-//    public function setEntityName(string $entity_name): void
-//    {
-//        $this->entity_name = $entity_name;
-//    }
-//
-//    /**
-//     * @return SynchronizationSyncEntityRecord[]
-//     */
-//    public function getData(): array
-//    {
-//        return $this->data;
-//    }
-//
-//    /**
-//     * @param SynchronizationSyncEntityRecord[] $data
-//     */
-//    public function setData(array $data): void
-//    {
-//        $this->data = $data;
-//    }
-//
-//    public function __construct($entity_name, $data)
-//    {
-//        $this->entity_name = $entity_name;
-//        $this->data = $data;
-//    }
-
 
 }
 
@@ -637,18 +557,6 @@ class SynchronizationSyncEntityRecord
     }
 
 
-
-//    public function __construct(
-//        $localUUID,
-//        $record,
-//        $last_modified,
-//    )
-//    {
-//        $this->localUUID = $localUUID;
-//        $this->record = $record;
-//        $this->last_modified = $last_modified;
-//    }
-
     public function __toString(): string
     {
         // TODO: Implement __toString() method.
@@ -667,12 +575,6 @@ class SynchronizationSyncingState {
 }
 
 class SynchronizationSyncingEntry {
-//objectUuid: string;
-//requestUuid: string;
-//status: string;
-//retries: number;
-//data: SyncChamberRecordStructure | undefined;
-//createdDatetime: Date | undefined;
     public string $object_uuid;
     public string $request_uuid;
     public string $status;
@@ -692,43 +594,3 @@ enum SynchronizationSyncStatus {
     case PARTIAL;
     case FAILED_ALL;
 }
-
-
-//enum MergeResolutionEnum {
-//    case NO_RESTRICTIONS;
-//    case NEWER_CHANGES;
-//    case DEFAULT;
-//    case USER_INTERACTION_NEEDED;
-//    case NONE;
-//
-//    public static function toInt(MergeResolutionEnum $value): int {
-//        switch ($value) {
-//            case self::NO_RESTRICTIONS: return 1;
-//            case self::NEWER_CHANGES: return 2;
-//            case self::DEFAULT: return 3;
-//            case self::USER_INTERACTION_NEEDED: return 4;
-//            case self::NONE: return 5;
-//            default: return 5;
-//        }
-//    }
-//
-//    public static function fromInt(int $value): MergeResolutionEnum {
-//        switch ($value) {
-//            case 1: return self::NO_RESTRICTIONS;
-//            case 2: return self::NEWER_CHANGES;
-//            case 3: return self::DEFAULT;
-//            case 4: return self::USER_INTERACTION_NEEDED;
-//            case 5: return self::NONE;
-//            default: return self::NONE;
-//        }
-//    }
-//}
-
-/**
-export enum MergeModeEnum {
-NO_RESTRICTIONS=0, // POMENI, DA CE IMAMO V SPREMEMBAH TA FIELD, NAS NE ZANIMA KDAJ JE BIL POSODOBLJEN. CE PISE DA JE SPREMENJEN GA SPREMENI
-NEWER_CHANGES=1, // POMENI, DA CE JE FIELD V SPREMEMBAH, MORAS PREVERITI ALI IMA `RECORD` IZ `BE` VECJI `UPDATED_AT` KOT SPREMEMBA
-DEFAULT=3, // @TODO
-USER_INTERACTION_NEEDED=4,
-NONE=5 // POTREBNO DODATI NEK ZAPIS V KONFIGURACIJO KJER BO POVEDALO, KAJ NAREDITI V PRIMERU `NONE` (MOGOCE JE TA OPCIJA IDENTICNA KOT OPCIJA `DEFAULT`).
-}**/

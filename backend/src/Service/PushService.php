@@ -38,7 +38,7 @@ class PushService {
     }
 
     /**
-     * @param string $data - Pricakujem podatek v stilu JSON string formatu -> zato ker hocemo od drugje vzeti logiko kako pretvoriti podatek v string (npr. serializer)
+     * @param string $data - We expect data in JSON string format because we want to use logic from other places to convert data to string (e.g. serializer)
      * @param string $topic_id
      * @param string $status
      * @param string $topic
@@ -53,7 +53,7 @@ class PushService {
         // );
 
         $update = new Update(
-            sprintf('%s', $topic), // Topics je lahko ARRAY!!!
+            sprintf('%s', $topic), // Topics could be an ARRAY!!!
             ($data)
         );
         return $this->hub->publish($update);

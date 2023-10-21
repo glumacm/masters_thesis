@@ -32,7 +32,6 @@ class SimulationSummaryService
      * @param string $directory_to_search
      * @param string $needle_in_file_name
      * @return array|null
-     * @TODO Moram preimenovati funkcijo, v kaj bolj smiselnega
      */
     public function findMatchingFiles(string $directory_to_search, string $needle_in_file_name): ?array
     {
@@ -170,11 +169,11 @@ class SimulationSummaryService
                 $summary_report->total_time  += $simulation_entity_time->sync_time;
                 $is_invalid_entity_time_type = $simulation_entity_time->type !== $entity_time_type->name;
                 if ($is_invalid_entity_time_type) {
-                    continue; # da znamo delati razliko med SUCCESS in ERROR
+                    continue; # so that we can distinguish between SUCCESS and ERROR
                 }
 
                 if ($entity_name_empty or $objects_empty) {
-                    continue;  # preskocimo nepoznane entrije
+                    continue;  # ignore unrecognized entries
                 }
 
                 if ($entity_time_type === SyncSimulationEntityTimeTypeEnum::SUCCESS) {
@@ -183,7 +182,7 @@ class SimulationSummaryService
                     $summary_report->total_sync_error_count += $simulation_entity_time->objects_size;
                 }
 
-                // IDENTIFIKATOR === <entityName>_<number_of_objects>
+                // identifier === <entityName>_<number_of_objects>
                 $entry_identifier = sprintf(
                     '%s_%s',
                     $simulation_entity_time->entity_name,
@@ -264,7 +263,7 @@ class SimulationSummaryService
             $summary_result = $summary_results[$entry_identifier];
         }
 
-        // dodaj nove vrednosti
+        // add new values
         $summary_result->number_of_instances += 1;
         $summary_result->total_time          += $simulation_entity_time->sync_time;
         $summary_result->objects_total_size  += $simulation_entity_time->objects_size;

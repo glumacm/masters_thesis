@@ -79,7 +79,7 @@ class ConflictConfigurationService
 
     public function get_default_merge_resolution(): MergeResolutionEnum {
         if (!key_exists('default_merge_resolution', $this->yaml_configuration)) {
-            # Trenutno bom v primeru manjkajoce configuracije dovolil: MergeResolutionEnum::NO_RESTRICTIONS
+            # Currently if no configuration is provided we fallback to NO_RESTRICTIONS
             return MergeResolutionEnum::NO_RESTRICTIONS;
         }
 

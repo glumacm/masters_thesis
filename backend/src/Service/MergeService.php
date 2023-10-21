@@ -67,15 +67,16 @@ class MergeService
     public function start_merger_process_latest(mixed $data_from_fe, string $entity_name, mixed $object_data_from_db,): ?MergeProcessResult
     {
 
-//        $last_modified_from_fe = $data_from_fe->getLastModified();
-//        $last_modified_from_be = $object_data_from_db->getLastModified();
-//        $this->logger->warning('Examples how to print lastModified');
-//        $this->logger->warning(($last_modified_from_be->format('Y-m-d H:i:s')));
-//        $this->logger->warning(($last_modified_from_fe->format('Y-m-d H:i:s')));
+        // Examples of printing date with format
+        // $last_modified_from_fe = $data_from_fe->getLastModified();
+        // $last_modified_from_be = $object_data_from_db->getLastModified();
+        // $this->logger->warning('Examples how to print lastModified');
+        // $this->logger->warning(($last_modified_from_be->format('Y-m-d H:i:s')));
+        // $this->logger->warning(($last_modified_from_fe->format('Y-m-d H:i:s')));
 
-        //@internal: This function is called only if data in DB exists!!!
+        //This function is called only if data in DB exists!!!
 
-        // Dobimo razred ki predstavlja entiteto poslano iz FE
+        // class name that represents entity sent from FE
         $entity_name_reflection_class = $this->generic_service->get_class_from_string($entity_name);
 
         if ($entity_name_reflection_class == null) {
@@ -90,11 +91,10 @@ class MergeService
         $fe_data_as_array = $this->get_serializer_without_camel()->normalize($data_from_fe, null);
 
         /**
-         * Predlagam, da bi iz calculate_differences dobil tabelo vseh sprememb, ki jih moram narediti na objektu
-         * in potem uporabim `update_object_by_fields` da se nastavi vrednosti
+         * I propose that function `calculate_differences` should return table of changes that we need to execute
+         * on an object and then use `update_object_by_fields` so that the value is set.
          *
-         * UPDATE 19.03.2023: Prvotna ideja je bila ok, ampak sem nareidl novo funkcijo namesto updatE_obejct_by_field + sedaj moramo
-         * v trenutni funkciji tudi vrniti CONFLICTED podatke!!!
+         * UPDATE 19.03.2023: First idea was O.K, but we added new function instead of `update_object_by_field` + in current function we need to return conflicted data
          */
         $changes_to_apply = $this->calculate_differences(
             $entity_name_reflection_class->getShortName(),
@@ -112,8 +112,8 @@ class MergeService
         $result->conflicts = $changes_to_apply->conflicted;
         $result->merged_db_object = $applied_object;
 
-        # TODO: Transformacija nazaj v objekt iz podatka $changes_to_apply->merged (ki je tabela fieldov in vrednosti)
-        # TODO Vrniti je potrebno drugacno strukturo, ker vracamo tudi CONFLICTED podatke!!!
+        # TODO: Transformation back to object from $changes_to_apply->merged (which is an array of fields and values) (not sure if still valid TODO)
+        # TODO: Need to return different structure because currently this return conflicted data (not sure if still valid TODO)
         return $result;
     }
 
@@ -157,14 +157,7 @@ class MergeService
             $fe_data_as_array
         );
 
-
-//        $diff = array_diff($entity_as_array,$fe_data_as_array, array('id'));
-
-//        var_dump($serializer->serialize($what->getModifiedNew(), 'json'));
-//        $this->logger->warning($serializer->serialize($what, 'json'));
-
         return $object_data_from_db;
-//        $this->logger->warning($this->serializer->serialize(),'json'));
     }
 
     public function get_serializer(bool $include_get_set_method_normalizer = false, $format = \DateTime::ATOM): Serializer
@@ -286,44 +279,31 @@ class MergeService
         $return_object->conflicted = array();
         $serializer = $this->get_serializer();
 //        $differences = new JsonDiff($db_object, $fe_object, 0, $fields_to_ignore);
-
-        # find potential conflicts
-
-        # 1. get DB object ==> $db_object
-        # 2. get differences between DB and FE
         # Example from before: `$modified_new        = $differences_between_objects->getModifiedNew();`
-//        $this->logger->warning(($db_object['last_modified']->format('Y-m-d H:i:s')));
         $this->logger->warning(($db_object['last_modified']));
         $this->logger->warning(($fe_object['last_modified']));
 
         $differences = new JsonDiff($db_object, $fe_object, 0, skipPaths: $excluded_fields);
 
-        # 3. Get conflict configuration
         /**
          * @var MergeConfig $conflict_configuration
          */
         $conflict_configuration = $this->get_merge_configuration();
-
-//        $this->logger->warning('what is entity short name: ' . $entity_short_name);
         $entity_conflict_configuration = $this->conflictConfigurationService->get_conflict_field_groups_by_entity_name(
             $entity_short_name
         );
         $default_merge_resolution      = $this->conflictConfigurationService->get_default_merge_resolution();
 
 
-//        $this->logger->warning($this->serializer->serialize($differences->getModifiedPaths(), 'json'));
-
-        # 4. find merge resolution configuration
-
-        # 5. for each diff check if there is specific merge resolution or if it is a conflict
+        # find merge resolution configuration
+        # for each diff check if there is specific merge resolution or if it is a conflict
 //        $conflicted_items = array();
         foreach ($differences->getModifiedPaths() as $modified_path) {
             $modified_path_converted = $this->convert_path_json_string_to_plain_string($modified_path);
 
-            # Trenutno bomo smatrali conflict_resolution === merge_resolution
             $default_merge_resolution = $this->conflictConfigurationService->get_default_merge_resolution();
 
-            # Dobimo tabelo, ki je vezana na 'groups' lastnost znotraj nastavitev za podan entity.
+            # We get array that represents values from `groups` inside configuration
             $entity_merge_resolutions = $this->conflictConfigurationService->get_conflict_field_groups_by_entity_name(
                 $entity_short_name
             );
@@ -331,8 +311,7 @@ class MergeService
             $conflict_resolution = $conflict_configuration->default_conflict_resolution;
             $merge_resolution    = $conflict_configuration->default_merge_resolution;
 
-            $merge_resolution_to_use = $default_merge_resolution ?: MergeResolutionEnum::NO_RESTRICTIONS; # Ta enum predstavlja policy, da takoj uveljavimo spremembo - kar bo predstavljalo tudi FALLBACK, ce konfiguracija ne bi bila nastavljena.
-            # Ce imamo tabelo merge nastavite, precverimo ali obstaja podatek za "spremenjen" field
+            $merge_resolution_to_use = $default_merge_resolution ?: MergeResolutionEnum::NO_RESTRICTIONS;
             if ($entity_merge_resolutions) {
                 $filtered_merge_resolution_for_entity = array_values(array_filter(
                     $entity_merge_resolutions,
@@ -349,12 +328,11 @@ class MergeService
                             ) and $array_item['field_name'] === $modified_path_converted;
                     }
                 ));
-                # Ce smo dobili preko filtra pravo zadevo, bomo povozili spremenljivko kar s prvo vrednostjo iz tabele (ker naceloma, bi moral dobiti le eno filtrirano vrednost - ce se ujema).
+                # If filter gives us correct data we override variable with first value from the array - since we should get only one filtered value if filter applies
                 $filtered_merge_resolution_for_entity = sizeof(
                     $filtered_merge_resolution_for_entity
                 ) > 0 ? $filtered_merge_resolution_for_entity[0] : null;
                 if ($filtered_merge_resolution_for_entity) {
-                    // Imamo ujemanje s konfiguracijo in spremenjenim fieldom
                     $merge_resolution_to_use_loc = $this->conflictConfigurationService->get_merge_resolution_from_conflict_group(
                         $filtered_merge_resolution_for_entity
                     );
@@ -363,25 +341,23 @@ class MergeService
                     }
                 }
 
-                // Naredimo MERGE ZADEVO
-
                 /**
-                 * NERAZCISCENE ZADEVE:
-                 * 1. Kaj naredimo v primeru, da je merge policy == user interaction? To bo treba oznaciti kot konflikt.
-                 * Kako bomo pripravili strukturo podatkov, da bomo vrnili MERGEANE in konfliktne zadeve?
+                 * @Probably deprecated
+                 * UNRESOLVED ITEMS:
+                 * 1. what to do in case merge policy == user interaction? We will need to mark it as conflict.
+                 * How are we gonna prepare data structure that will return merged and conflicted data?
                  *
-                 * Odgovor: Ko pride do konflikta bomo konflikten podatek shrnaili v tabelo konfliktov. Vse ostale
-                 * fielde, ki ne bodo imeli konfliktov bomo zdruzili glede na MERGE policy. Tako bomo dobili sledeco
-                 * strukturo za 'response':
+                 * Answer: When conflict occurs, we will store conflicted data to array of conflicts. All other fields,
+                 * that will not have conflict will be merge by MERGE policy. That way we will get the following structure
+                 * for the response:
                  * {
                  *      "merged": {"field1": "1", "field3": "3", "field2": "4"},
                  *      "conflicted": [{"field_name": "field2", "value": "2"}],
                  *      "status": "conflicte" | "success" | "error",
-                 *      "error?: "<error>" # ce pride do napake?
+                 *      "error?: "<error>" #
                  * }
                  */
             }
-
             // DO MERGE
 
             /**
@@ -402,8 +378,8 @@ class MergeService
                 $merge_resolution             = new MergeResolutionCalculation();
                 $merge_resolution->conflicted = array();
                 switch ($merge_policy) {
-                    case MergeResolutionEnum::OLDER_CHANGES: // Dajmo na to raje gledati kot: v primeru starih sprememb, ne dovoli spremembe (je konflikt)
-                        # (A SE VELJA)?:  If changed_field does not yet exist on be_object_array, then it will be added (but be careful - if this property is not defind on CLASS , then this will break!)
+                    case MergeResolutionEnum::OLDER_CHANGES: //
+                        # @deprecated ?  If changed_field does not yet exist on be_object_array, then it will be added (but be careful - if this property is not defined on CLASS , then this will break!)
                         if ($fe_last_modified < $be_last_modified) {
                             return $this->create_conflict_data(be_object_array: $be_object_array, changed_field: $changed_field, changed_value: $changed_value);
                         }
@@ -440,23 +416,15 @@ class MergeService
 
             continue;
 
-//            if array_key_exists($modified_path_converted, $)
-
             // FOR now we ommit this code;
             {
                 if (array_key_exists($entity_short_name, $conflict_configuration->conflict_field_groups)) {
                     $conflict_field_groups = $conflict_configuration->conflict_field_groups[$entity_short_name]->groups;
                     foreach ($conflict_field_groups as $conflict_field_group) {
-//                        $this->logger->warning('what is FIELD name: ' . $conflict_field_group->field_name);
-//                        $this->logger->warning('what is path: ' . $modified_path_converted);
-//                        $this->logger->warning($this->serializer->serialize($differences->getModifiedDiff(), 'json'));
-                        var_dump($differences->getModifiedDiff());
                         if ($conflict_field_group->field_name == $modified_path_converted) {
 
-                            // Primitivna resitev
                             $changes[$modified_path_converted] = $fe_object[$modified_path_converted];
 
-                            # KAKO BOMO NASTAVILI NOVO VREDNOST V BE OBJEKT???
                             # Check if we can merge, based on merge_resolution in conflict_field_group
                             # TODO: Logic for matched fields - depending of the merge_resolution
                             # Confirmation: $conflict_field_group->field_name is really equal to $modified_path_converted (when we define correct field in configuration)
@@ -470,9 +438,6 @@ class MergeService
         $return_object->merged = $db_object;
         return $return_object;
 //        }
-
-
-        # 6. if any conflicts, return them to FE
 
     }
 

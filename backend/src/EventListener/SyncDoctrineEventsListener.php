@@ -18,7 +18,7 @@ use Doctrine\ORM\Events;
 class SyncDoctrineEventsListener implements EventSubscriberInterface
 {
     /**
-     * SyncDoctrineEventsListener se obnasa kot SERVICE. Torej ga lahko injectam v controller in tam upravljam z njim!!!
+     * SyncDoctrineEventsListener behaves like a SERVICE. So we need to inject it to controller and from there we manipulate with it!
      */
 
     /**
@@ -28,7 +28,7 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
 
     private MergeService $merge_service;
 
-    private string $agent_id = 'ALLAGENTS';  # podatek o Agentu, ki je sprozil akcijo. Naceloma bomo to prejeli iz zahteve v controllerju!
+    private string $agent_id = 'ALLAGENTS'; # agent id that triggered the action/request. This should be retrieved from request in controller
 
     public function __construct(
         PushService $push_service,
@@ -38,7 +38,7 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
         $this->push_service  = $push_service;
         $this->merge_service = $merge_service;
 
-        $push_service->logData(sprintf('ZACELO SE JE  %s', $this->agent_id));
+        $push_service->logData(sprintf('ServiceStarted  %s', $this->agent_id));
     }
 
     public function getSubscribedEvents(): array
@@ -53,7 +53,6 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
 
     // the listener methods receive an argument which gives you access to
     // both the entity object of the event and the entity manager itself
-//    public function preUpdate(LifecycleEventArgs $args): void
     public function postUpdate(LifecycleEventArgs $args): void
     {
         // $entity = $args->getObject();
@@ -88,7 +87,7 @@ class SyncDoctrineEventsListener implements EventSubscriberInterface
 
     public function postPersist(LifecycleEventArgs $args): void
     {
-        // Ocitno PERSIST pomeni CREATE v Doctrine contextu
+        // I looks like PERSIST means CREATE in Doctrine's context
         $reflection_class = (new \ReflectionClass($args->getObject()));
         $entity_name = $reflection_class->getShortName();
 
