@@ -102,12 +102,17 @@ class MergeService
             $fe_data_as_array
         );
 
-        $applied_object = $this->apply_changes_to_entity(
-            object_data_from_db: $object_data_from_db,
-            object_reflection_class: $entity_name_reflection_class,
-            changes_to_apply: $changes_to_apply->merged,
-            ignore_fields: array('id', 'uuid'),
-        );
+        # at some point stored incorrect code: we need to bypass setting data if conflicts are found
+        if (!$changes_to_apply->conflicted || sizeof($changes_to_apply->conflicted) == 0) {
+            $applied_object = $this->apply_changes_to_entity(
+                object_data_from_db: $object_data_from_db,
+                object_reflection_class: $entity_name_reflection_class,
+                changes_to_apply: $changes_to_apply->merged,
+                ignore_fields: array('id', 'uuid'),
+            );
+        } else {
+            $applied_object = $object_data_from_db;
+        }
 
         $result->conflicts = $changes_to_apply->conflicted;
         $result->merged_db_object = $applied_object;
@@ -388,7 +393,13 @@ class MergeService
                         return $merge_resolution;
                     case MergeResolutionEnum::USER_INTERACTION_NEEDED:
                         # this is considered A CONFLICT!
-                        return $this->create_conflict_data(be_object_array: $be_object_array, changed_field: $changed_field, changed_value: $changed_value);
+                        if ($fe_last_modified != $be_last_modified) { // If some other data was changed in between
+                            return $this->create_conflict_data(
+                                be_object_array: $be_object_array,
+                                changed_field: $changed_field,
+                                changed_value: $changed_value
+                            );
+                        }
                     case MergeResolutionEnum::NO_RESTRICTIONS:
                     case MergeResolutionEnum::DEFAULT:
                     case MergeResolutionEnum::NONE:
