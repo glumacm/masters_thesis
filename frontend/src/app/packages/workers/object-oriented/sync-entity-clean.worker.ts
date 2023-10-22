@@ -188,7 +188,17 @@ export class SyncEntityClean {
             }
         }
         const dataToReturn = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectIdentifier, dataFromEventSource, syncEntry, ChamberSyncObjectStatus.synced);
-        syncDB.table(entityName).put(dataToReturn, objectIdentifier);
+        if (dataFromEventSource && dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD]) {
+            dataToReturn.lastModified = dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD];
+            dataToReturn.record.lastModified = dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD];
+        }
+        await syncDB.table(entityName).put(dataToReturn, objectIdentifier);
+        await this.sendNewEventNotification(
+            {
+                type: SyncLibraryNotificationEnum.AUTOMATIC_UPDATE,
+                message: `Automatically updated entity: ${entityName} with id: ${dataToReturn.localUUID}`,
+            } as SyncLibraryNotification
+        );
         return;
 
     }

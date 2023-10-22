@@ -390,13 +390,22 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         objectUuid: string,
         entityName: string,
         newStatus: ChamberSyncObjectStatus = ChamberSyncObjectStatus.synced,
+        lastModified: null | Date = null,
     ): Promise<boolean> {
         const syncDB = await this.getSyncDB();
         if (!syncDB.tableExists(entityName)) {
             return false;
         }
         const numberOfModifiedItems = await syncDB.table(entityName).where({ 'localUUID': objectUuid }).modify(
-            (obj: SyncChamberRecordStructure) => obj.objectStatus = newStatus);
+            (obj: SyncChamberRecordStructure) => {
+                obj.objectStatus = newStatus;
+                if(lastModified) {
+                    obj.lastModified = lastModified;
+                }
+                if(obj.record && lastModified) {
+                    obj.record.lastModified = lastModified
+                }
+            });
         if (!numberOfModifiedItems || numberOfModifiedItems == 0) {
             return false;
         }
@@ -490,8 +499,10 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
                 return await this.setConflictChamber(objectUuid, entityName, conflictChamber);
             }
 
+
             const conflictChamberRemoved = await this.removeConflictChamber(objectUuid, entityName);
-            const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
+            // const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
+            const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName, ChamberSyncObjectStatus.pending_sync, conflictChamber.record[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD]); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
             if (conflictChamberRemoved) {
 
                 SynchronizationLibrary.eventsSubject.next(

@@ -79,7 +79,7 @@ export class ConflictService {
 
         // 18.06.2023 -> Commented below line because I want to implement an option to automatically recognise a conflict based on lastModified
         // record.lastModified = changesDatetime;
-        record.lastModified = changesDatetime ? changesDatetime : new Date();
+        record.lastModified = changesDatetime ? changesDatetime : record.lastModified;//new Date();
 
         // Logic that does not have `changes` should not be able to get to this point!
         if (changes && changes.length > 0) {
