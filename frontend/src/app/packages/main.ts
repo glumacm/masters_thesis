@@ -186,7 +186,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         const timeInMinutes = 0
         const sum = (miliseconds * 60 * timeInMinutes) + (miliseconds * timeInSeconds);
         if (CONFIGURATION_CONSTANTS.ALLOW_RETRY_PROCESS) {
-            await this.retryMangementInstance.initiateEvaluationInterval(1120);
+            await this.retryMangementInstance.initiateEvaluationInterval(CONFIGURATION_CONSTANTS.RETRY_INTERVAL);
         }
         // await this.retryMangementInstance.initiateEvaluationInterval(600);
 
@@ -197,7 +197,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
          * the level of fail that this eventually caused.
          */
         try {
-            console.log('Before initialisation of syncEntityInstance88');
+            // console.log('Before initialisation of syncEntityInstance88');
             const syncConfiguration: SyncConfigurationI = {
                 agentId: this.agentId
             }
@@ -499,7 +499,10 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
                 return await this.setConflictChamber(objectUuid, entityName, conflictChamber);
             }
 
-
+            // const syncEntry = await (await this.getSyncDB()).table(entityName).where({'localUUID': objectUuid}).modify((obj: any) => obj = patchedData);
+            const syncEntry = await (await this.getSyncDB()).table(entityName).get(objectUuid);
+            syncEntry.record = patchedData;
+            await (await this.getSyncDB()).table(entityName).put(syncEntry, objectUuid);
             const conflictChamberRemoved = await this.removeConflictChamber(objectUuid, entityName);
             // const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
             const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName, ChamberSyncObjectStatus.pending_sync, conflictChamber.record[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD]); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
