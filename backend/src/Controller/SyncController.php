@@ -279,7 +279,7 @@ class SyncController extends AbstractController
                  */
                 $syncData = $sync_service->sync_single_record($entity_name, $batch_item);
 
-                if ($syncData->status != SyncEntityStatusEnum::SUCCESS) {
+                if ($syncData->status != SyncEntityStatusEnum::SUCCESS->name) {
                     $fail_status = true;
                 } else {
                     $success_status = true;

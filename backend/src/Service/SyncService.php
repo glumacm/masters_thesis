@@ -175,10 +175,9 @@ class SyncService
                     );
                     $new_data->last_modified = $new_data->merged_db_object->getLastModified();
                 } catch (Exception $e) {
-                    var_dump('Error occured while saving merged data to db!!!');
                     $this->logger->emergency('Error occured while saving merged data to db!!!');
                     $this->logger->emergency($e->getMessage());
-                    $data_to_return->status = SyncEntityStatusEnum::UNSUCCESSFUL_SAVE_TO_DB;
+                    $data_to_return->status = SyncEntityStatusEnum::UNSUCCESSFUL_SAVE_TO_DB->name;
                     $data_to_return->error = $e;
 //                    throw new \Exception(message: 'Error occured while saving merged data to db!!!', previous: $e);
                 }

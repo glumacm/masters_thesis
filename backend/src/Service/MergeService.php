@@ -19,6 +19,8 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\PropertyInfo;
 use Ramsey\Uuid\Uuid;
 
+use function Symfony\Component\String\u;
+
 
 class MergeService
 {
@@ -461,7 +463,7 @@ class MergeService
         $merge_resolution->conflicted = array();
         $merge_resolution->merged      = $be_object_array;
         $conflicted_change             = new ConflictResolutionCalculation();
-        $conflicted_change->field_name = $changed_field;
+        $conflicted_change->field_name = u($changed_field)->camel();
         $conflicted_change->value      = $changed_value;
         $conflicted_change->conflict_id = Uuid::uuid4();
         $conflicted_change->datetime   = new \DateTime();
