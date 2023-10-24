@@ -970,7 +970,7 @@ export class SyncEntityClean {
     }
 
     public async changeNetworkStatus(newStatus: NetworkStatusEnum) {
-        this.consoleOutput.output(`And i would give up forever`);
+        // this.consoleOutput.output(`And i would give up forever`);
         this.networkStatus = newStatus;
         if (newStatus === NetworkStatusEnum.OFFLINE) {
             // close source
