@@ -42,6 +42,7 @@ export class ZagovorComponent implements OnInit {
     'fifthInput': new FormControl(),
     'loadingFinished': new FormControl<Boolean>(false),
     'simulationFinished': new FormControl<Boolean>(false),
+    'conflictUseRemove': new FormControl<Boolean>(true),
   })
 
   //@ts-ignore
@@ -57,6 +58,8 @@ export class ZagovorComponent implements OnInit {
   private syncData = [];
   private tempData = [];
   private conflictData = [];
+
+  useRemoteData: boolean = true;
 
   eventsSubscription: Subscription | undefined;
 
@@ -109,7 +112,7 @@ export class ZagovorComponent implements OnInit {
 
     if ((await this.syncLib.getConflictDB()).tableExists(testSchema)) {
       const obj = (await (await this.syncLib.getConflictDB()).table(testSchema).toArray()).map(item => {
-        const ob = { uuid: item.objectUuid, object: item.record, conflicts: item.conflicts }
+        const ob = { uuid: item.objectUuid, object: item.record, conflicts: item.conflicts, beData: item.record}
         return {
           string: JSON.stringify(ob),
           object: ob,
@@ -145,14 +148,15 @@ export class ZagovorComponent implements OnInit {
       async (event: SyncLibraryNotification) => {
         this.consoleOutput.output(`SIMULATION -> events subscription:`, event);
         this.displayedData = await this.getData('sync');
-        if (event.type === SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE) {
-          SynchronizationLibrary.eventsSubject.next({ type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED, message: 'finished' } as SyncLibraryNotification);
-        }
+        // if (event.type === SyncLibraryNotificationEnum.NETWORK_UNAVAILABLE) {
+        //   SynchronizationLibrary.eventsSubject.next({ type: SyncLibraryNotificationEnum.BATCH_SYNC_FINISHED, message: 'finished' } as SyncLibraryNotification);
+        // }
       }
     );
   }
 
   public async resolveConflict(uuid: any, conflictId: any, entityName = 'testEntity', useRemote: boolean = true) {
+    useRemote = this.basicInputForm.controls['conflictUseRemove'].value;
     await this.syncLib.resolveConflict(uuid, entityName, conflictId, useRemote);
   }
 
@@ -170,6 +174,14 @@ export class ZagovorComponent implements OnInit {
       'secondInput': this.basicInputForm.controls['secondInput'].value
     };
     const savedData = await this.syncLib.storeNewObject('testEntity', useExistingId ? recordId : uuidv4(), formData);
+    this.resetObjectFormData();
+  }
+
+  resetObjectFormData() {
+    this.setDataInForm({uuid: '', object: { firstInput: '', secondInput: ''}});
+    // this.basicInputForm.controls['uuidValue'].setValue('');
+    // this.basicInputForm.controls['firstInput'].setValue('');
+    // this.basicInputForm.controls['secondInput'].setValue('');
   }
 
   public onInputChange(event: any, inputName: any): void {
@@ -185,7 +197,14 @@ export class ZagovorComponent implements OnInit {
   }
 
   public async startBatchSync() {
+    this.syncLib.agentId = this.basicInputForm.controls['browserName'].value ?? uuidv4();
     await this.syncLib.startBatchSync();
+  }
+
+  setAgentId(event: any) {
+    // this.syncLib.agentId 
+    // this.consoleOutput.output(`'ggg'`, event?.target?.['value']);
+    this.syncLib.agentId = event.target.value;
   }
 
   public async startBEInitialState(entityName: string = 'TestEntity') {
@@ -209,6 +228,7 @@ export class ZagovorComponent implements OnInit {
       uuid: uuid,
     };
     await this.syncLib.storeNewObject('testEntity', uuid, data);
+    this.resetObjectFormData();
   }
 
 }
