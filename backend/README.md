@@ -1,43 +1,26 @@
-# Custom instructions
+# Warning
+This repository is research based project. It was created in order to support masters thesis assumption about creating a generic synchronization solution for TypeScript+PHP+Symfony projects.
+Current code is not meant to be used in production environments. We strongly advise to use this in local environment only!
 
-V vsakem primeru, ce hocem, da bo browser sprejel Caddy certifikat je potrebno dodati `Caddy Local Authority - ECC Intermediate`
-certifikat v Keychain Access. Trenutno sem uspel to narediti tako, da ko obisces eno stran, ki je vezana na BE,
-kliknes na ikono ob URL-ju, kjer lahko vidis podrobnosti certifikata, ki ga browser zavraca.
-Kliknes na certifikat in nato gres na tab `Details`, tam v `Certificate Hierarchy` izberes najvisjo opcijo, ki bi morala
-biti `Caddy Local Authority - ECC Intermediate`. Potem to exportas. Nato dvakrat kliknes na zadevo in uvozis pod SYSTEMS (ne pod local items!!!!)
-Ko je certifikat dodan v Keychain access, ga je potrebno tudi nastaviti, da se mu zaupa!!!!
-Gres v Keychain access, dvakrat kliknes na `Caddy Local Authority - ECC Intermediate` in nato razsiris
-`Trust` sekcijo in v `While using this certifikate` oznacis `Always trust`. S tem bo vsak brskalnik od sedaj naprej
-moral sprejeti certifikate od tega "Authorityja", ki jih Caddy generira na nasem lokalnem serverju.
-Potrebno je dodati tudi ROOT certifikat. Oba certifikata je mozno dobiti v Caddy containerju na poti:
-`/data/caddy/pki/authorities/local/`. Preneses na svoj racunalnik `root.crt` in `intermediate.crt` in jih uvozis
-v Keychain access. To bi moralo dovoliti precej casa izvajati zahteve na BE brez problema.
+# Custom instructions (MacOs-M1)
 
-Ukaz za kopiranje:
-`docker cp test-masters-be-caddy-1:/data/caddy/pki/authorities/local/root.crt <pot_na_lokalnem_racunalniku>`
+We strongly advice to import Caddy's CA and root certificates to `Keychain access`. You should first run docker containers and then run the following commands:
+```
+`docker cp <caddys_container_name>:/data/caddy/pki/authorities/local/root.crt <path_on_local_machine>`
+`docker cp <caddys_container_name>:/data/caddy/pki/authorities/local/intermediate.crt <path_on_local_machine>`
+```
+Then import both certificates into `Keychain access` and set `Trust` of the certificates to `Always trust` -> right click on certificate in keychain access-> `Get info`->`Trust` (tab).
+This will allow browser to send HTTPS requests to backend without any restrictions and exception warnings - after all, we are just checking this code in development mode.
 
-V primeru, da testi/simulacija ne bo dovolila posiljanje zahtev na backend, brez da bi se prvo sprejelo certifikat v 
-chrome browserju (ko gremo na url, ki ga simulacija poklice), se lahko v CADDY nastavivah povozi, da ne bo vec
-omogocen HTTPS ampak bi potem klical kar HTTP - seveda bo potrebno v logiki FE-ja popraviti URL do BE-a.
-
-V CaddyFile dodamo sledece:
+There is also another workaround if HTTPS requests are not allowed without accepting warning about certificate warning.
+You can add the following to CaddyFile:
 ```
 {
     # Debug
     {$CADDY_DEBUG}
-    auto_https off # trenutno je to zakomentirano
-    local_certs # trenutno imam to moznost vklopljeno!!!
+    auto_https off # This option should allow Caddy server to run HTTP request instead of HTTPS
+    local_certs
 }
-```
-
-## SSH multiple accounts
-Trenutno je vseeno kaksna je vsebina `~/.ssh/config`. Pomembno je kaksne kljuce ima ssh agent. Zaenkrat ne poznam
-nastavitve, ki bi omogocala socasno uporabo GitHub za firmo in privatni. Zato predlagam sprotno brisanje in dodajanje
-ssh kljuca v agenta.
-
-```
-ssh-add -D # -D pobrise vse kljuce v agentu
-ssh-add ~/.ssh/<kljucKiGaRabimoZaSSHDostop>
 ```
 
 ## Migration commands
@@ -46,18 +29,11 @@ php bin/console make:migration  # Ustvari migration datoteko
 php bin/console doctrine:migrations:migrate # izvede migracijo v bazi
 ```
 
-## Simulacija
-Vecina zadev je vezana na FE. Trenutno je na BE obvezno le to, da omogocimo endpointe za EXPORT in IMPORT FE podatkovne baze.
-Trenutno je ideja, da bi ta dva endpointa bila:
-
-* `api/refactored/store_fe_database_export/{database_name}/{browser_name}`
-* `api/refactored/import_test_dexie_database_file`
-
-Prvi omogoci, da iz FE posljemo JSON export specificne podatkovne baze (npr. `sync`) in to shranimo v `simluation`
-direktorij.
-
-Drugi omogoca, da iz BE posljemo prepripravljeno bazo za `sync`, ki jo nato uvozimo na FE. Specificno zato, da lahko izvedemo simulacijo.
-
+## Simulation
+Most of the simulation related stuff is bound to frontend part of the package (in `../frontend` folder of this repository).
+Currently on the backend we only enable API endpoints to export/import frontend related databases, which are:
+* `api/refactored/store_fe_database_export/{database_name}/{browser_name}` - used for exporting frontend databases in `JSON` format to `simulation` folder
+* `api/refactored/import_test_dexie_database_file` - used for importing database data from JSON file (stored on backend) to frontend IndexedDB database.
 
 # Symfony Docker
 
@@ -109,4 +85,5 @@ Symfony Docker is available under the MIT License.
 
 ## Credits
 
+### Docker images for Caddy and Symfony
 Created by [Kévin Dunglas](https://dunglas.fr), co-maintained by [Maxime Helias](https://twitter.com/maxhelias) and sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).

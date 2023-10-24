@@ -10,14 +10,12 @@ use Doctrine\ORM\Mapping as ORM;
 class TestEntity
 {
     /**
-     * ZELO DOBRO VEDETI:
-     *
-     * - id polje se pri 'deserialize' procesu ne bo nastavilo, ker nimamo setterja
-     * - ce ima neko polje nastavljen privzeto 'null' vrednost, potem se to polje ne bo moglo nikoli ignorirati pri deserializaciji (ce npr. ni podano znotraj podatkov)
-     *      + posledicno ce bo null natavljen npr. ?string $name = null, potem ce podatka ne spremenimo in ga ne posljemo kot del sprememb na BE, se bo privzeto nastavilo na NULL, kar pa ni pravilno delovanje!!!
-     * - json_decode ne bo pravilno pretvoril camel case v snake case npr: "{"lastModified": "nekaj"}", bo pretvorjen v {"lastModified": "nekaj"} namesto v {"last_modified":"nekaj"}
-     * - ko pretvorimo (casting) object/entity v asociativno tabelo, se imena propertyjev pretvorijo v <potDoEntitete><ime_fielda> . Primer: App\\Entity\\TheTest\\name.
-     * Zato je potrebno odstraniti odvecen prefix!
+     * GOOD TO KNOW:
+     * - `id` field does not get set during `deserialize` process because we do not have a setter
+     * - if some field has a default value of `null` then this field will never be ignored during deserialization
+     *      + therefore if we set default as null e.g. `?string $name =null` then if data in this field is not changed when we send changed from FE, then this field will be always set to NULL and therefore can override some data in the DB! (which is incorrect behaviour)
+     * - json_decode does not correctly convert camel case to snake case e.g.  "{"lastModified": "something"}", will be converted to {"lastModified": "something"} instead of {"last_modified":"something"}
+     * - when we cast an object into associative array then field names are converted into a structure like `<namespaceofentity><name_of_field>` e.g. `App\\Entity\\TheTest\\name`.
      */
 
     #[ORM\Id]

@@ -1,4 +1,4 @@
 export enum SimulationNetworkStatusEnum {
-    OFFLINE = 'offline',  // dejanska vrednost, ki se bo uporabi: 'offline'
-    ONLINE = 'online'  // dejanska vrednost, ki se bo uporabi: 'online'
+    OFFLINE = 'offline',  // value that will be used: 'offline'
+    ONLINE = 'online'  // value that will be used: 'online'
 }

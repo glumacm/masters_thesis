@@ -1,0 +1,157 @@
+
+<form [formGroup]="basicInputForm">
+    <mat-card>
+        <!-- <mat-card-header><h2>Primer delovanja (sinhronizacija + avtomatska sinhronizacija)</h2></mat-card-header> -->
+        <mat-card-header><h2>Primer delovanja (sinhronizacija + konflikt)</h2></mat-card-header>
+        <mat-card-content>
+            <table mat-table [dataSource]="displayedData">
+                <ng-container matColumnDef="1">
+                    <th mat-header-cell *matHeaderCellDef>Shramba za sinhronizacijske podatke</th>
+                    <td mat-cell *matCellDef="let element">
+                        <div *ngIf="element.sync.object && element.sync.object.status; else elseSyncBlock">
+                            <div>
+                                <label>UUID:</label>
+                                <span>{{element.sync.object?.uuid}}</span>
+                            </div>
+                            <div>
+                                <label>Prvo polje:</label>
+                                <span>{{element.sync.object?.object?.firstInput}}</span>
+                            </div>
+                            <div>
+                                <label>Drugo polje:</label>
+                                <span>{{element.sync.object?.object?.secondInput}}</span>
+                            </div>
+                            <div>
+                                <label>Status:</label>
+                                <span><b>{{element.sync.object?.status}}</b></span>
+                            </div>
+                            <div>
+                                <button (click)="setDataInForm(element.sync.object)" mat-raised-button color="primary">Uporabi podatke</button>
+                            </div>
+                            <hr>
+                        </div>
+                        <ng-template #elseSyncBlock>
+                            {{element.sync.string}}
+                        </ng-template>
+                    </td>
+                </ng-container>
+
+                <!-- <ng-container matColumnDef="2">
+                    <th mat-header-cell *matHeaderCellDef> Začasni podatki </th>
+                    <td mat-cell *matCellDef="let element"> {{element.temp.string}} </td>
+                </ng-container> -->
+
+                <ng-container matColumnDef="3">
+                    <th mat-header-cell *matHeaderCellDef>Shramba za konflikte</th>
+                    <td mat-cell *matCellDef="let element">
+                        <div *ngIf="element.conflict.object && element.conflict.object.conflicts && element.conflict.object.conflicts.length > 0; else elseConflictBlock">
+
+                            <span *ngFor="let item of element.conflict.object.conflicts">
+                                <div>
+                                    <label>Konfliktno polje:</label>
+                                    <span>{{item.fieldName}}</span>
+                                </div>
+                                <div>
+                                    <label>Local sprememba:</label>
+                                    <span>{{item.value}}</span>
+                                </div>
+                                <div>
+                                    <label>Remote sprememba:</label>
+                                    <span>{{element?.conflict?.object?.beData?.[item.fieldName]}}</span>
+                                </div>
+                                <div>
+                                    <button (click)="resolveConflict(element.conflict.object.uuid, item.conflictId)" mat-raised-button color="primary">Razreši konflikt</button>
+                                </div>
+                            </span>
+                            <mat-slide-toggle formControlName="conflictUseRemove">{{this.basicInputForm.controls['conflictUseRemove'].value ? 'Uporabi remote': 'Uporabi lokalne'}}</mat-slide-toggle>
+                        </div>
+                        <ng-template #elseConflictBlock>
+                            {{element.conflict.string}}
+                        </ng-template>
+                        <div>
+                            
+                        
+                            
+                        </div>
+                        <!-- {{element.conflict.string}} -->
+                    </td>
+                    
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="['1','3']"></tr>
+                <tr mat-row *matRowDef="let row; columns: ['1','3'];"></tr>
+            </table>
+        </mat-card-content>
+    </mat-card>
+    <mat-card>
+    <mat-card-header><h2>Forma za podatke</h2></mat-card-header>
+    </mat-card>
+   
+    <div class="col-12">
+        <mat-form-field class="example-full-width">
+            <div class="form-group">
+                <label for="uuidValues">UUID Vrednost</label>
+                <input matInput id="uuidValues" class="form-control" type="text" formControlName="uuidValues" />
+            </div>
+        </mat-form-field>
+    </div>
+
+    <div class="col-12">
+        <mat-form-field class="example-full-width">
+            <div class="form-group">
+                <label for="browserName">ID brskalnika</label>
+                <input matInput id="browserName" (change)="setAgentId($event)" class="form-control" type="text" formControlName="browserName" />
+            </div>
+        </mat-form-field>
+    </div>
+
+    <div class="col-12">
+        <mat-form-field class="example-full-width">
+            <div class="form-group">
+                <label for="firstInput">Prvo polje</label>
+                <!-- <input id="firstInput" (change)="onInputChange($event, 'firstInput')" [ngModel]="firstInput" class="form-control" type="text" formControlName="firstInput" /> -->
+                <input matInput id="firstInput" class="form-control" type="text" formControlName="firstInput" />
+            </div>
+        </mat-form-field>
+    </div>
+
+    <div class="col-12">
+        <mat-form-field class="example-full-width">
+            <div class="form-group">
+                <label for="secondInput">Drugo polje</label>
+                <input matInput id="secondInput" class="form-control" type="text" formControlName="secondInput" />
+            </div>
+        </mat-form-field>
+    </div>
+
+    <div class="col-12">
+        <button id="storeDataFromForm" (click)="storeDataFromForm(false)" mat-raised-button color="primary">Shrani podatke (nov UUID)</button>
+    </div>
+
+    <div class="col-12">
+        <button id="storeDataFromFormexistingId" (click)="storeDataFromForm(true)" mat-raised-button color="primary">Shrani podatke (v obstojec ali predefiniran)</button>
+    </div>
+
+    <div class="col-12">
+        <button id="startBatchSync" (click)="startBatchSync()" mat-raised-button color="primary">Zacni sinhronizacijo</button>
+    </div>
+<!-- 
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <div class="col-12">
+        <div class="form-group">
+            <label for="thirdInput">Thhird input</label>
+            <input id="thirdInput" [value]="thirdInput" class="form-control" type="text" formControlName="thirdInput" />
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-group">
+            <label for="fourthInput">Fourth input</label>
+            <input id="fourthInput" [value]="fourthInput" class="form-control" type="text"
+                formControlName="fourthInput" />
+        </div>
+    </div> -->
+</form>

@@ -188,7 +188,17 @@ export class SyncEntityClean {
             }
         }
         const dataToReturn = await this.syncLibAutoMerge.applyNewChangesToExistingSyncObject(objectIdentifier, dataFromEventSource, syncEntry, ChamberSyncObjectStatus.synced);
-        syncDB.table(entityName).put(dataToReturn, objectIdentifier);
+        if (dataFromEventSource && dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD]) {
+            dataToReturn.lastModified = dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD];
+            dataToReturn.record.lastModified = dataFromEventSource[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD];
+        }
+        await syncDB.table(entityName).put(dataToReturn, objectIdentifier);
+        await this.sendNewEventNotification(
+            {
+                type: SyncLibraryNotificationEnum.AUTOMATIC_UPDATE,
+                message: `Automatically updated entity: ${entityName} with id: ${dataToReturn.localUUID}`,
+            } as SyncLibraryNotification
+        );
         return;
 
     }
@@ -551,7 +561,6 @@ export class SyncEntityClean {
      * na novo generira.
      */
     async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SyncChamberRecordStructure) {
-        // async singleSyncProcessSuccess(success: SyncEntityResponseI, collectionName: string, objectUuid: string, syncEntityRecord: SynchronizationSyncEntityDecodedRecord) {
 
         const syncEntityResponseInstance = classTransformer.plainToInstance(SyncEntityResponse, success);
 
@@ -961,7 +970,7 @@ export class SyncEntityClean {
     }
 
     public async changeNetworkStatus(newStatus: NetworkStatusEnum) {
-        this.consoleOutput.output(`And i would give up forever`);
+        // this.consoleOutput.output(`And i would give up forever`);
         this.networkStatus = newStatus;
         if (newStatus === NetworkStatusEnum.OFFLINE) {
             // close source

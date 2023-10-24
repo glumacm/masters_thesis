@@ -15,7 +15,6 @@ import { sync_entity_records_batch, ExampleClassForComlinkProxy } from "./servic
 import { SentryClient } from "./services/monitor";
 // import { AutoMergeWrapper } from "./services/automerge-wrapper";
 import { ConflictService } from "./services/conflict-service";
-// import { getDataFromEncodedRecord } from "./utilities/automerge-utilities";
 import { SyncLibraryNotification } from "./models/event/sync-library-notification.model";
 import { plainToInstance } from "class-transformer";
 import { SyncLibraryNotificationEnum } from "./enums/event/sync-library-notification-type.enum";
@@ -187,7 +186,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         const timeInMinutes = 0
         const sum = (miliseconds * 60 * timeInMinutes) + (miliseconds * timeInSeconds);
         if (CONFIGURATION_CONSTANTS.ALLOW_RETRY_PROCESS) {
-            await this.retryMangementInstance.initiateEvaluationInterval(1120);
+            await this.retryMangementInstance.initiateEvaluationInterval(CONFIGURATION_CONSTANTS.RETRY_INTERVAL);
         }
         // await this.retryMangementInstance.initiateEvaluationInterval(600);
 
@@ -198,7 +197,7 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
          * the level of fail that this eventually caused.
          */
         try {
-            console.log('Before initialisation of syncEntityInstance88');
+            // console.log('Before initialisation of syncEntityInstance88');
             const syncConfiguration: SyncConfigurationI = {
                 agentId: this.agentId
             }
@@ -391,13 +390,22 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
         objectUuid: string,
         entityName: string,
         newStatus: ChamberSyncObjectStatus = ChamberSyncObjectStatus.synced,
+        lastModified: null | Date = null,
     ): Promise<boolean> {
         const syncDB = await this.getSyncDB();
         if (!syncDB.tableExists(entityName)) {
             return false;
         }
         const numberOfModifiedItems = await syncDB.table(entityName).where({ 'localUUID': objectUuid }).modify(
-            (obj: SyncChamberRecordStructure) => obj.objectStatus = newStatus);
+            (obj: SyncChamberRecordStructure) => {
+                obj.objectStatus = newStatus;
+                if(lastModified) {
+                    obj.lastModified = lastModified;
+                }
+                if(obj.record && lastModified) {
+                    obj.record.lastModified = lastModified
+                }
+            });
         if (!numberOfModifiedItems || numberOfModifiedItems == 0) {
             return false;
         }
@@ -491,8 +499,13 @@ export class SynchronizationLibrary extends SynchronizationLibraryBase {
                 return await this.setConflictChamber(objectUuid, entityName, conflictChamber);
             }
 
+            // const syncEntry = await (await this.getSyncDB()).table(entityName).where({'localUUID': objectUuid}).modify((obj: any) => obj = patchedData);
+            const syncEntry = await (await this.getSyncDB()).table(entityName).get(objectUuid);
+            syncEntry.record = patchedData;
+            await (await this.getSyncDB()).table(entityName).put(syncEntry, objectUuid);
             const conflictChamberRemoved = await this.removeConflictChamber(objectUuid, entityName);
-            const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
+            // const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
+            const syncUpdated = await this.setSyncChamberAsSynced(objectUuid, entityName, ChamberSyncObjectStatus.pending_sync, conflictChamber.record[CONFIGURATION_CONSTANTS.LAST_MODIFIED_FIELD]); // TODO: Zelo verjetno, da bi moral razmisliti o "rollbacku", ker ce ta logika pade, bi bilo potrebno revertati conflict...
             if (conflictChamberRemoved) {
 
                 SynchronizationLibrary.eventsSubject.next(

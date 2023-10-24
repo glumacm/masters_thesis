@@ -38,8 +38,10 @@ export const CONFIGURATION_CONSTANTS = {
     ALLOW_INTERVAL_SYNC: false, // true,
     AUTOMATIC_SYNC_INTERVAL: 7500, // in miliseconds
     DEBUG_MODE: true, // boolean
-    ALLOW_RETRY_PROCESS: true,
+    RETRY_INTERVAL: 10000,
+    ALLOW_RETRY_PROCESS: false,
     SIMULATION_COUNT_OBJECT_SIZES: true,
+    SENTRY_DNS: 'https://5f37ad3e5884446991daea73d440d58a@o4504900918837248.ingest.sentry.io/4504900923097088', // change accordingly
 }
 
 

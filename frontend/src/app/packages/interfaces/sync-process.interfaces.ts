@@ -1,5 +1,4 @@
 import { ResponseMessageType, SyncEntityWithCommandsWorkerCommandEnum, SynchronizationSyncStatus } from "../enums/sync-process.enum";
-import { AutoMergeDoc } from "../utilities/automerge-utilities";
 
 export interface SynchronizationPostData {
     class_name: string;
@@ -19,10 +18,6 @@ export interface SynchronizationSyncEntityRecord {
     localUUID: string;
     lastModified: Date | null;
     record: any;
-}
-
-export interface SynchronizationSyncEntityDecodedRecord extends SynchronizationSyncEntityRecord {
-    record: AutoMergeDoc;
 }
 
 export interface SynchronizationSyncEntityEncodedRecord extends SynchronizationSyncEntityRecord {

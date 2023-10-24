@@ -33,7 +33,7 @@ class SimulationController extends AbstractController
          * @var Finder|null $filesMatchingSummaryFile
          */
         $filesMatchingSummaryFile = $simulation_summary_service->findMatchingFiles(sprintf('%s/%s', $projectDir, SimulationSummaryService::SIMULATION_DIRECTORY), SimulationSummaryService::SIMULATION_SUMMARY_NAME);
-        return new JsonResponse(['success' => 'Sam En Mejhen Poljub Mi Dej']);
+        return new JsonResponse(['success' => true]);
     }
 
 

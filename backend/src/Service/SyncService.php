@@ -56,7 +56,7 @@ class SyncService
 
         if ($entity_name_reflection_class == null) {
             \Sentry\captureMessage('Entity  ' . $entity_name . ' does not exist');
-            # TODO: Vrniti je potrbno napako v sklopu responsea in SyncEntityResponse objekta!
+            # TODO: Return error in scope of response in SyncEntityResponse object!
             return new JsonResponse(data: json_encode('Entity does not exist!'));
         }
 
@@ -64,22 +64,19 @@ class SyncService
 
         $object_data = $deserialized_item;
 
-//        $this->logger->warning('This is entity name: ' . $entity_name);
-//        $this->logger->warning('This is entity name:78 ' . $this->generic_service->get_class_from_string($entity_name));
-
-        # Dobimo razred entitete, ki jo moramo sinhronizirati
+        # Get class of the entity that we want to synchronize
         $entity_name_reflection_class = $this->generic_service->get_class_from_string($entity_name);
 
         if ($entity_name_reflection_class == null) {
             \Sentry\captureMessage('Entity  ' . $entity_name . ' does not exist');
-            # TODO: Vrniti je potrbno napako v sklopu responsea in SyncEntityResponse objekta!
+            # TODO: Return error in scope of response in SyncEntityResponse object!
             $data_to_return->status = SyncEntityStatusEnum::ENTITY_DOES_NOT_EXIST->name;
             return $data_to_return;
-//            return new JsonResponse(data: json_encode('Entity does not exist!'));
         }
 
 
         if (is_null($object_data->getUuid())) {
+            //@TODO Should ommit exception?
             throw new Exception('UUID field on entity: ' . $entity_name . ' is not set!');
             $data_to_return->status = SyncEntityStatusEnum::MISSING_UUID_DATA->name;
             return $data_to_return;
@@ -88,7 +85,7 @@ class SyncService
         $data_to_return->record_uuid = $object_data->getUuid();
 
 
-        # Dobimo obstojec ojekt, ki ga bomo singronizirali s podatki iz FE
+        # We get existing object from DB that we want to merge with data from FE
         $object_data_from_db = $this->merge_service->get_entity_object($entity_name_reflection_class->getName(), $object_data->getUuid());
 
 
@@ -97,8 +94,7 @@ class SyncService
         $repository = $this->generic_service->findRepositoryFromString($entity_name);
 //        if (!$object_data_from_db && property_exists(json_decode($request->getContent()), 'id')) {
         if (is_null($object_data_from_db)) {
-            //@dilema Predpostavljam, da vedno dobim UUID
-
+//        Logic before providing workaround for concurrency problem
 //##//            $repository->beginTransaction();
 //##//            $this->em->beginTransaction();
 //##//            $em->beginTransaction();
@@ -115,7 +111,7 @@ class SyncService
 //##//                $em->commit();
 //##////                $this->em->commit();
 //##//            } catch (UniqueConstraintViolationException $exception) {
-//##//                $this->logger->warning('#######.....#######.....#######JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+//##//                $this->logger->warning('#PROBLEM');
 //##//                $error = $exception;
 //##////                $this->em->rollback();
 //##////                $this->em->close();
@@ -133,11 +129,9 @@ class SyncService
 //            try {
 //
 //            } catch (UniqueConstraintViolationException $exception) {
-//                $this->logger->warning('DODOBFOGSDFOSAKJ STE SLI IURA RKAUC?A?@#?$@#?#$??');
 //                throw $exception;
 //            }
 
-//            PREJSNJA DELUJOCA LOGIKA - ki ni podpirala concurrencyja
             $new_data = new MergeProcessResult();
             $new_data->conflicts = array();
             $new_data->merged_db_object = $object_data;
@@ -181,10 +175,9 @@ class SyncService
                     );
                     $new_data->last_modified = $new_data->merged_db_object->getLastModified();
                 } catch (Exception $e) {
-                    var_dump('Error occured while saving merged data to db!!!');
                     $this->logger->emergency('Error occured while saving merged data to db!!!');
                     $this->logger->emergency($e->getMessage());
-                    $data_to_return->status = SyncEntityStatusEnum::UNSUCCESSFUL_SAVE_TO_DB;
+                    $data_to_return->status = SyncEntityStatusEnum::UNSUCCESSFUL_SAVE_TO_DB->name;
                     $data_to_return->error = $e;
 //                    throw new \Exception(message: 'Error occured while saving merged data to db!!!', previous: $e);
                 }
@@ -193,18 +186,6 @@ class SyncService
                 $new_data->last_modified = $object_data_from_db->getLastModified();
             }
         }
-
-        /*
-         * 1. Gremo skozi vse lastnosti, ki smo jih poslali preko POST-a -> ubistvi nam to ze resi DESERIALIZER
-         * 2. nastavimo nove vrednosti v razred in IGNORIRAMO neobstojece
-         * 3. [IF]
-         * 3.1 Ce obstaja objekt v DB moramo primerjati tega z novim objektom
-         * 3.2 Ce ne obstaja, direktno dodaj v bazo
-         */
-
-        $this->logger->warning('This is json data');
-        $this->logger->warning($serializer->serialize($object_data,'json'));
-
 
         $data_to_return->merged_data = $new_data;
         $data_to_return->last_modified = $new_data->last_modified;

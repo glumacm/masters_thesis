@@ -5,7 +5,7 @@ export const CONSOLE_STYLE: ConsoleStyles = {
     black_and_white: 'background-color: #000000; color: #FFFFFF',
     red_and_black: 'background-color: #ff0000; color: #000000',
     red_and_white: 'background-color: #ff0000; color: #FFFFFF',
-    promise_success: 'background-color: #0047ff; color: #F1F227', // success in error imata le zamenjani background-color in color!!!
+    promise_success: 'background-color: #0047ff; color: #F1F227',
     promise_error: 'background-color: #d8255c; color: #E0FFFF',
     databaseUtilityLogic: 'background-color: #6e1fe0; color: #fde3a7',
     magenta_and_white: 'background-color: #CA6CF6; color: #ffffff',

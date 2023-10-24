@@ -24,7 +24,6 @@ export class AppDB extends AAppDB {
         //     this.newMethod();
         //     AppDB._db = this;
 
-        // console_log_with_style(`ENTER APPDB constructor! --- for table: ${databaseName}`, CONSOLE_STYLE.promise_success!, '');
 
 
         super(databaseName);
@@ -54,7 +53,6 @@ export class AppDB extends AAppDB {
      * @returns 
      */
     async changeSchemaInstance(db: AppDB, schemaChanges?: any, newVersion?: number | null): Promise<AppDB> {
-        console.log(`SOMEBODY IS CLOSING THIS : ${db.name}`);
         
         db.close();
         const newDb = new AppDB(db.name);
@@ -215,7 +213,6 @@ export class AppDB extends AAppDB {
     public async setStatusOnSyncItemsBasedOnStatus(table: string, currentStatus: ChamberSyncObjectStatus, newStatus: ChamberSyncObjectStatus, statusField: string = 'objectStatus'): Promise<boolean> {
 
         let success = true;
-        console_log_with_style('START ITEMS UPDATE IN TRANSACTION....', CONSOLE_STYLE.promise_error!, {});
         // const allItemsFoundByConditionInTable = await this.table(table).filter((tableItem) => tableItem.objectStatus == currentStatus);
         const allItemsFoundByConditionInTable = await this.table(table).filter((tableItem) => tableItem[statusField] == currentStatus);
         const countFoundItems = await allItemsFoundByConditionInTable.count();
@@ -223,7 +220,6 @@ export class AppDB extends AAppDB {
             let index = 0;
             const numberOfSuccessfullyModifiedItems = await allItemsFoundByConditionInTable.modify(
                 (obj) => {
-                    console_log_with_style('INSIDE EACH ITEM....', CONSOLE_STYLE.promise_error!, obj);
                     // obj.objectStatus = newStatus;
                     obj[statusField] = newStatus;
                     

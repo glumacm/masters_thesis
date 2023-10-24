@@ -3,8 +3,8 @@
 //  */
 
  import {init, captureEvent, captureException, captureMessage, BrowserTracing} from '@sentry/browser';
+import { CONFIGURATION_CONSTANTS } from '../configuration';
  const initializeSentryIfNotInitialized = () => {
-    
     return (target: any, memberName: string, propertyDescriptor: PropertyDescriptor) => {
     //   propertyDescriptor.enumerable = value;
 
@@ -20,8 +20,6 @@
                  * }
                  * As we see in the example, we did not call the function but only referenced it.
                  */
-
-                console.log('34298043287243872493342879348792879');
                 
               const wrapperFn = (...args: any[]) => {
                 /**
@@ -58,7 +56,7 @@
 
     static initializeSentry(): void {
         init({
-            dsn: "https://5f37ad3e5884446991daea73d440d58a@o4504900918837248.ingest.sentry.io/4504900923097088",
+            dsn: CONFIGURATION_CONSTANTS.SENTRY_DNS,
             integrations: [new BrowserTracing()],
           
             // Set tracesSampleRate to 1.0 to capture 100%

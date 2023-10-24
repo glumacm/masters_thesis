@@ -44,17 +44,17 @@ export class RetryManagement {
 
     public async setDependencies(dependencies: any | Comlink.ProxyOrClone<any>) {
         /**
-         * Pricakujemo, da bomo v sendNewEventNotification funkcijo poslali event tipa: SyncLibraryNotification
+         * We expect that in `sendNewEventNotification function we send event of type: SyncLibraryNotification
          */
 
-        // Dependency-ji so Proxy funkcije, ki kazejo na podatek, ki ga dodajam v konstruktor
-        // ce hocem dobiti pravi podatek ven, moram uporabiti `await` ker drugace se podatek ne pridobi
+        // Dependencies are proxy function that reference the data that we set via constructor
+        // If we want to get the dependency, we need to add `await` otherwise logic is bypassed
         this.sendNewEventNotification = dependencies.sendNewEventNotification;
 
     }
 
     public initiateEvaluationInterval(interval: number) {
-        this.consoleOutput.output(`this is number: ${interval} `);
+        // this.consoleOutput.output(`this is number: ${interval} `);
         if (this.evaluationInterval) {
             clearInterval(this.evaluationInterval);
         }
@@ -65,9 +65,9 @@ export class RetryManagement {
     }
 
     async evaluationIntervalCalback() {
-        clearInterval(this.evaluationInterval); // TODO: Odstrani kasneje to, ker to povzroci, da se interval izvede le enkrat
-        // Ker me skrbi, da bi kaksen interval se zacel preden se prejsnji zakljuci. ChatGPT pravi, da to naj ne bi bilo mogoce.
-        // TODO: ce bo prislo do cudnega vedenja retry intervala, je mogoce resitev uporaba `isEvaluationRunning`.
+        clearInterval(this.evaluationInterval); // TODO: Remove this in the end since this will cause interval to execute only once
+        // Because I am concerned that the interval would start before previous would finish. ChatGPT said that this could not happen, but that should not be used as a guarantee.
+        // TODO: If some weird execution happens withing retry interval, maybe we should use `isEvaluationRunning`.
         if (this.isEvaluationRunning) {
             return;
         }
@@ -113,7 +113,7 @@ export class RetryManagement {
                 plainToInstance(SyncLibraryNotification, {
                     createdAt: new Date(),
                     type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
-                    message: 'Prislo je do napake, ki je nisem pricakoval (use-case: Retry)',
+                    message: 'Error occurred that was not anticipated (use-case: Retry)',
                 })
             );
             return;
@@ -130,16 +130,15 @@ export class RetryManagement {
                 plainToInstance(SyncLibraryNotification, {
                     createdAt: new Date(),
                     type: SyncLibraryNotificationEnum.ENTITY_TABLE_DOES_NOT_EXIST,
-                    message: 'Tabela ne obstaja za retry primer - zahteva se ne bi smela zgodit.',
+                    message: 'Schema does not exist for retry example - request should not have happened.',
                 })
             );
             return;
         }
 
         /**
-         * VELIK TODO 1:
-         * Potrebno bo dodati kodo in upati, da bo delovalo brez tezkih problemov, ki bo omogocila, da
-         * se podatkovna baza posodobi, ko dobi obvestilo, da je prislo do spremembe.
+         * Big todo:
+         * Add code that will receive notification when DB(chamber) is updated - hopefully no interferences will happen
          */
         for (let item of responseData.listOfRequestsStatuses) {
             const itemFromSync = await findPendingRetryItemByRequestUuid(syncTable, item.uuid, convertedEntityName)!;
@@ -148,12 +147,12 @@ export class RetryManagement {
                     {
                         createdAt: new Date(),
                         type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
-                        message: `Ne moremo dobiti zapisa o sync itemu z lastRequestUuid-jem: ${item.uuid} v entiteti: ${convertedEntityName}.`
+                        message: `Cannot get sync item with lastRequestUuid: ${item.uuid} in entity: ${convertedEntityName}.`
                     } as SyncLibraryNotification
                 );
                 continue;
             }
-            // OPOZORILO: Nujno moramo preveriti ali temp tabela obstaja preden preverimo za TEMP podatek
+            // WARING: We MUST first check if temporary table/schema exists for temporary data
             const tempEntry: SyncChamberRecordStructure | null = tempTable.tableExists(convertedEntityName) ? await tempTable.table(convertedEntityName).get(itemFromSync.localUUID) : null;
 
             if (item.status === SyncRequestStatusEnum.IN_PROGRESS) {
@@ -189,7 +188,7 @@ export class RetryManagement {
                     plainToInstance(SyncLibraryNotification, {
                         createdAt: new Date(),
                         type: SyncLibraryNotificationEnum.RESOLVED_RETRY_ITEM,
-                        message: `Uspesno smo prepoznali zakljucen proces za objekt: ${itemFromSync.localUUID}`,
+                        message: `Process finished successfully for object: ${itemFromSync.localUUID}`,
                     })
                 );
             }
@@ -202,11 +201,9 @@ export class RetryManagement {
         syncItem.objectStatus = status;
         syncItem.lastRequestUuid = null;
         /**
-         * // ker to so primeri, ko smo se resili retryja 
+         * // Because this are examples when we resolved retry ker to so primeri, ko smo se resili retryja 
          * 
-         * IDEJA za kasneje: mogoce bi lahko pustil pri miru vrednost za 
-         * specificne statuse in na podlagi tega kasneje ugotovil kateri 
-         * statusi povzrocajo ciklanje istega synca.
+         * IDEA for later: Maybe we could leave the values for specific statuses and based on values later check which statuses cause re-initialization of the same sync
          */
         syncItem.retries = 0;
         if (tempEntry) {
@@ -219,8 +216,8 @@ export class RetryManagement {
 
     async processErrorRetryResponse(error: any) {
         /**
-         * Trenutno pustilo samo obvestilo, ker mislim, da v primeru kaksne napake na BE ne povzroci nobene skode na FE
-         * podatkih. Zato imamo obvestilo, da bom med uporabo aplikacije zaznal ali kdaj pride do napake
+         * Currently leaving only notification because I do not thing that in case we get error on BE that this would be harmful on FE.
+         * That's why we have notification so that we can recognize problem while using the package
          */
         await this.sendNewEventNotification(
             plainToInstance(
@@ -229,7 +226,7 @@ export class RetryManagement {
                     createdAt: new Date(),
                     error: JSON.stringify(error),
                     type: SyncLibraryNotificationEnum.UNKNOWN_RETRY_ERROR,
-                    message: 'Med izvajanjem retry procesa je prislo do nepoznane napake'
+                    message: 'During rety process we recognised an error'
                 }
             )
         );
